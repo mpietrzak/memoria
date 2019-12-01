@@ -1,0 +1,51 @@
+name: memoria
+version: 0.0.1
+cabal-version: >= 1.18
+build-type: Simple
+
+
+library
+    default-language: Haskell2010
+    build-depends: base >= 0.0.1
+                 , binary >= 0.8
+                 , blaze-html >= 0.9.1.1
+                 , blaze-markup >= 0.8.2.2
+                 , bytestring >= 0.10
+                 , connection >= 0.3
+                 , containers >= 0.6.0.1
+                 , cookie >= 0.4
+                 , data-default-class >= 0.1
+                 , formatting >= 6.3.7
+                 , HDBC >= 2.4
+                 , HDBC-postgresql >= 2.3.2.6
+                 , monad-control >= 1.0.2.3
+                 , mtl >= 2.2.2
+                 , random >= 1.1
+                 , raw-strings-qq >= 1
+                 , resource-pool >= 0.2
+                 , scientific >= 0.3.6.2
+                 , scotty >= 0.11.4
+                 , text >= 1.2.3
+                 , time >= 1.6
+                 , tomland >= 1
+                 , transformers-base >= 0.4
+                 , uuid >= 1.3.13
+    exposed-modules: Memoria
+    ghc-options: -O -Wall
+    hs-source-dirs: src
+    other-modules: Memoria.Conf
+                 , Memoria.Db
+                 , Memoria.Page.Index
+                 , Memoria.View.Base
+                 , Memoria.View.Index
+
+
+executable memoria
+    default-language: Haskell2010
+    main-is: main.hs
+    hs-source-dirs: app
+    build-depends: base >= 0.0.1
+                 , data-default-class >= 0.1
+                 , memoria >= 0.0.1
+    ghc-options: -O -Wall -rtsopts -threaded -debug
+
