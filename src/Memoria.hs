@@ -10,23 +10,26 @@
 
 module Memoria (main) where
 
-import qualified Memoria.Conf as M.Conf
-import qualified Web.Scotty.Trans as ST
-import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, runReaderT)
 import Control.Monad.Base (MonadBase)
-import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, runReaderT)
+import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Default.Class (def)
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as Data.Text.Lazy
 import qualified Data.UUID as Data.UUID
 import qualified Data.UUID.V4 as Data.UUID.V4;
-import Control.Monad.IO.Class (liftIO)
+import qualified Web.Scotty.Trans as ST
+import Data.Pool (Pool, createPool, takeResource, withResource)
+import qualified Database.HDBC.PostgreSQL as PSQL
 
 import Memoria.Page.Index (handleIndex)
 import Memoria.Sessions (HasSessions, generateRandomSessionId, getSessionValue, setSessionValue)
+import qualified Memoria.Conf as Memoria.Conf
+import qualified Memoria.Db as Memoria.Db
 
-data State = State
+data State = State { stateDbPool :: Pool PSQL.Connection }
 
 newtype StateM a = StateM
   { runStateM :: ReaderT State IO a
@@ -47,16 +50,15 @@ instance HasSessions (ST.ActionT Text StateM) where
     setSessionValue name value = do
         error "not implemented yet"
 
-main :: M.Conf.Conf -> IO ()
+main :: Memoria.Conf.Conf -> IO ()
 main conf = do
-    {-
-    pool <- createDbPool
-        (cfgDbHost conf)
-        (cfgDbPort conf)
-        (cfgDbName conf)
-        (cfgDbUser conf)
-        (cfgDbPass conf)
-    -}
-    let state = State
+    pool <- Memoria.Db.createDbPool
+        (Memoria.Conf.cfgDbHost conf)
+        (Memoria.Conf.cfgDbPort conf)
+        (Memoria.Conf.cfgDbName conf)
+        (Memoria.Conf.cfgDbUser conf)
+        (Memoria.Conf.cfgDbPass conf)
+    let state = State { stateDbPool = pool }
     let runIO m = runReaderT (runStateM m) state
     ST.scottyOptsT def runIO application
+
