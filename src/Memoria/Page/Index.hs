@@ -6,8 +6,10 @@ import Data.Text.Lazy (Text)
 
 import Memoria.View.Index (renderIndex)
 import Memoria.Sessions (HasSessions)
+import Memoria.Db (HasDb, getDbSize)
 
-handleIndex :: (Monad m, HasSessions m) => m Text
+handleIndex :: (HasDb m, HasSessions m, Monad m) => m Text
 handleIndex = do
+    dbSize <- getDbSize
     pure "test"
 

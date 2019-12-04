@@ -1,8 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Memoria.Db (
-    HasConnections,
-    createDbPool
+    HasDbConn(getConnection, withConnection),
+    HasDb(getDbSize),
+    createDbPool,
 ) where
 
 import Data.Text.Lazy (Text)
@@ -12,9 +13,12 @@ import qualified Data.Text.Lazy as Data.Text.Lazy
 import Data.Pool (Pool, createPool, takeResource, withResource)
 import Formatting ((%) , format, fprint, int, shown, text)
 
-class HasConnections m where
+class HasDbConn m where
     getConnection :: m (PSQL.Connection)
     withConnection :: (PSQL.Connection -> m b) -> m b
+
+class HasDbConn m => HasDb m where
+    getDbSize :: m (Either Text Text)
 
 createConnection :: Text -> Int -> Text -> Text -> Text -> IO (PSQL.Connection)
 createConnection host port db user pass = PSQL.connectPostgreSQL connstr

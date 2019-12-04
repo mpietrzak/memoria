@@ -45,6 +45,15 @@ instance HasSessions (ST.ActionT Text StateM) where
     setSessionValue name value = do
         error "not implemented yet"
 
+instance Memoria.Db.HasDbConn (ST.ActionT Text StateM) where
+    getConnection = do
+        error "not implemented yet"
+    withConnection action = do
+        error "not implemented yet"
+
+instance Memoria.Db.HasDb (ST.ActionT Text StateM) where
+    getDbSize = error "not implemented yet"
+
 application :: ST.ScottyT Text StateM ()
 application = do
     ST.get "/" $ do
