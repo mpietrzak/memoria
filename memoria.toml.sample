@@ -1,0 +1,6 @@
+db.host = "localhost"
+db.port = 5432
+db.name = "memoria"
+db.user = "memoria"
+db.pass = "memoria"
+web.port = 9080

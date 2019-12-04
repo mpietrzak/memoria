@@ -1,10 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main (main) where
 
-import Data.Default.Class (Default(def))
+import Formatting ((%), fprint, shown)
 import qualified Memoria as Memoria
 
 main :: IO ()
-main = Memoria.main def
-
-
+main = do
+    result <- Memoria.loadConf "memoria.toml"
+    case result of
+      Left err -> fprint ("Failed to load config: " % shown % "\n") err
+      Right conf -> Memoria.main conf
