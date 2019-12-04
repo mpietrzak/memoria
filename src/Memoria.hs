@@ -14,6 +14,7 @@ import Control.Monad.Base (MonadBase)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, runReaderT)
+import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Default.Class (def)
 import Data.Pool (Pool, createPool, takeResource, withResource)
@@ -49,10 +50,10 @@ instance Memoria.Db.HasDbConn (ST.ActionT Text StateM) where
     getConnection = do
         error "not implemented yet"
     withConnection action = do
-        error "not implemented yet"
+        pool <- lift $ asks stateDbPool
+        withResource pool action
 
-instance Memoria.Db.HasDb (ST.ActionT Text StateM) where
-    getDbSize = error "not implemented yet"
+instance Memoria.Db.HasDb (ST.ActionT Text StateM)
 
 application :: ST.ScottyT Text StateM ()
 application = do
