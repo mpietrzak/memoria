@@ -13,11 +13,11 @@ footer dbSize = do
     H.div ! A.class_ "footer" $ do
         H.p $ H.toHtml $ dbSize
 
-render :: H.Html -> Text
-render footer = renderMarkup $ H.docTypeHtml $ do
+render :: H.Html -> H.Html -> Text
+render content footer = renderMarkup $ H.docTypeHtml $ do
     H.head $ do
         H.title $ H.toHtml ("test" :: Text)
     H.body $ do
         H.div ! A.class_ "content" $ do
-            "test"
+            content
         footer

@@ -1,8 +1,9 @@
 #!/bin/sh
 
-RUST_BACKTRACE=1 RUST_LOG=warn nice watchexec \
+cd `dirname "$0"`
+
+RUST_BACKTRACE=1 RUST_LOG=warn nice -n19 watchexec \
     --restart \
-    --clear \
     --signal KILL \
     'cabal run memoria'
 

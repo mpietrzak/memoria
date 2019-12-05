@@ -25,9 +25,11 @@ import qualified Data.UUID.V4 as Data.UUID.V4;
 import qualified Database.HDBC.PostgreSQL as PSQL
 import qualified Network.Wai.Handler.Warp
 import qualified Web.Scotty.Trans as ST
+import qualified Web.Scotty.Cookie as Web.Scotty.Cookie
 
 import Memoria.Page.Index (handleIndex)
 import Memoria.Sessions (HasSessions, generateRandomSessionId, getSessionValue, setSessionValue)
+import qualified Memoria.Common as Memoria.Common
 import qualified Memoria.Conf as Memoria.Conf
 import qualified Memoria.Db as Memoria.Db
 
@@ -37,12 +39,28 @@ newtype StateM a = StateM
   { runStateM :: ReaderT State IO a
   } deriving (Applicative, Functor, Monad, MonadBase IO, MonadBaseControl IO, MonadIO, MonadReader State)
 
+class HasCookies m where
+    getCookie :: Text -> m (Maybe Text)
+    setCookie :: Text -> Text -> m ()
+
+instance HasCookies (ST.ActionT Text StateM) where
+    getCookie cookieName = do
+        mc <- Web.Scotty.Cookie.getCookie (Data.Text.Lazy.toStrict cookieName)
+        case mc of
+          Just v -> pure $ Just $ Data.Text.Lazy.fromStrict v
+          Nothing -> pure Nothing
+    setCookie cokoieName cookieValue = error "oops"
+
 instance HasSessions (ST.ActionT Text StateM) where
     generateRandomSessionId = do
         uuid <- liftIO $ Data.UUID.V4.nextRandom
         return $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
     getSessionValue name = do
-        error "not implemented yet"
+        let sessionCookieName = "session_id"
+        mSessionId <- getCookie sessionCookieName
+        case mSessionId of
+          Nothing -> pure Nothing
+          Just sessionId -> Memoria.Db.getSessionValue sessionId name
     setSessionValue name value = do
         error "not implemented yet"
 
@@ -54,6 +72,8 @@ instance Memoria.Db.HasDbConn (ST.ActionT Text StateM) where
         withResource pool action
 
 instance Memoria.Db.HasDb (ST.ActionT Text StateM)
+
+instance Memoria.Common.HasAccounts (ST.ActionT Text StateM)
 
 application :: ST.ScottyT Text StateM ()
 application = do

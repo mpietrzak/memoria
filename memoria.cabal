@@ -25,6 +25,7 @@ library
                  , resource-pool >= 0.2
                  , scientific >= 0.3.6.2
                  , scotty >= 0.11.5
+                 , scotty-cookie >= 0.1
                  , text >= 1.2.3
                  , time >= 1.6
                  , tomland >= 1
@@ -34,12 +35,14 @@ library
     exposed-modules: Memoria
     ghc-options: -O -Wall
     hs-source-dirs: src
-    other-modules: Memoria.Conf
+    other-modules: Memoria.Common
+                 , Memoria.Conf
                  , Memoria.Db
                  , Memoria.Page.Index
                  , Memoria.Sessions
                  , Memoria.View.Base
                  , Memoria.View.Index
+                 , Memoria.View.Unauthenticated
 
 
 executable memoria

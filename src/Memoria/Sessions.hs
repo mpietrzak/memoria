@@ -4,8 +4,9 @@ where
 
 import Data.Text.Lazy (Text)
 
-class HasSessions m where
+import qualified Memoria.Db as Memoria.Db
+
+class Memoria.Db.HasDb m => HasSessions m where
     generateRandomSessionId :: m Text
     getSessionValue :: Text -> m (Maybe Text)
     setSessionValue :: Text -> Text -> m ()
-

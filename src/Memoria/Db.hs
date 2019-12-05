@@ -3,18 +3,18 @@
 
 module Memoria.Db (
     HasDbConn(getConnection, withConnection),
-    HasDb(getDbSize),
+    HasDb(getDbSize, getSessionValue),
     createDbPool
 ) where
 
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Pool (Pool, createPool, takeResource, withResource)
 import Data.Text.Lazy (Text)
 import Formatting ((%) , fixed, format, fprint, int, shown, text)
+import Text.RawString.QQ
 import qualified Data.Text.Lazy as Data.Text.Lazy
 import qualified Database.HDBC as HDBC
 import qualified Database.HDBC.PostgreSQL as PSQL
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Text.RawString.QQ
 
 class MonadIO m => HasDbConn m where
     getConnection :: m (PSQL.Connection)
@@ -22,6 +22,8 @@ class MonadIO m => HasDbConn m where
 
 class HasDbConn m => HasDb m where
     getDbSize :: m (Either Text Text)
+    getSessionValue :: Text -> Text -> m (Maybe Text)
+
     getDbSize = do
         withConnection $ \conn -> do
             let sql = [r|
@@ -38,6 +40,25 @@ class HasDbConn m => HasDb m where
                     value -> pure $ Left $ format ("wrong type: " % shown) value
                  _ -> pure $ Left "more than one column in row"
               _ -> pure $ Left "more than one row"
+    getSessionValue sessionId name = do
+        let sql = [r|
+                select value
+                from
+                    session
+                    join session_value on (session_value.session = session.id)
+                where
+                    session.key = ?
+                    and session_value.name = ?
+            |]
+        withConnection $ \conn -> do
+            rows <- liftIO $ HDBC.quickQuery conn sql [HDBC.toSql sessionId, HDBC.toSql name]
+            case rows of
+              [row] -> case row of
+                [sqlValue] -> case sqlValue of
+                    (HDBC.SqlString value) -> pure $ Just $ Data.Text.Lazy.pack value
+                    _ -> pure Nothing
+                _ -> pure Nothing
+              _ -> pure Nothing
 
 createConnection :: Text -> Int -> Text -> Text -> Text -> IO (PSQL.Connection)
 createConnection host port db user pass = PSQL.connectPostgreSQL connstr
