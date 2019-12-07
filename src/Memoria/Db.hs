@@ -61,7 +61,10 @@ class HasDbConn m => HasDb m where
               _ -> pure Nothing
 
 createConnection :: Text -> Int -> Text -> Text -> Text -> IO (PSQL.Connection)
-createConnection host port db user pass = PSQL.connectPostgreSQL connstr
+createConnection host port db user pass = do
+    conn <- PSQL.connectPostgreSQL connstr
+    fprint "createConnection: Created connection\n"
+    pure conn
     where
         connstr = "user=" <> unpack user <> " "
             <> "password=" <> unpack pass <> " "
