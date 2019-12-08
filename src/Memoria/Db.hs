@@ -21,7 +21,7 @@ class MonadIO m => HasDbConn m where
     withConnection :: (PSQL.Connection -> m b) -> m b
 
 class HasDbConn m => HasDb m where
-    getDbSize :: m (Either Text Text)
+    getDbSize :: m (Either Text Integer)
     getSessionValue :: Text -> Text -> m (Maybe Text)
 
     getDbSize = do
@@ -36,7 +36,7 @@ class HasDbConn m => HasDb m where
             case rows of
               [row] -> case row of
                  [sqlSize] -> case sqlSize of
-                    (HDBC.SqlRational size) -> pure $ Right $ format (fixed 2) (round size)
+                    (HDBC.SqlRational size) -> pure $ Right $ round size
                     value -> pure $ Left $ format ("wrong type: " % shown) value
                  _ -> pure $ Left "more than one column in row"
               _ -> pure $ Left "more than one row"

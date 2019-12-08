@@ -9,7 +9,7 @@ import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
 import qualified Memoria.View.Base as Memoria.View.Base
 
-renderIndex :: Text -> Text
+renderIndex :: Integer -> Text
 renderIndex dbSize = do
     let foot = Memoria.View.Base.footer dbSize
     let content = H.div ! A.class_ "content" $ do
