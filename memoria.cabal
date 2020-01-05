@@ -15,9 +15,10 @@ library
                  , bytestring >= 0.10
                  , connection >= 0.3
                  , containers >= 0.6.0.1
-                 , cookie >= 0.4
+                 , cookie >= 0.4.5
                  , data-default-class >= 0.1
                  , formatting >= 6.3.7
+                 , http-types >= 0.12.3
                  , monad-control >= 1.0.2.3
                  , mtl >= 2.2.2
                  , random >= 1.1
@@ -29,19 +30,28 @@ library
                  , text >= 1.2.3
                  , time >= 1.6
                  , tomland >= 1
+                 , transformers >= 0.5
                  , transformers-base >= 0.4
                  , uuid >= 1.3.13
+                 , wai >= 3.2.2.1
                  , warp >= 3.3.4
     exposed-modules: Memoria
     ghc-options: -O -Wall
     hs-source-dirs: src
     other-modules: Memoria.Common
                  , Memoria.Conf
+                 , Memoria.Cookies
                  , Memoria.Db
+                 , Memoria.Page.CreateAccount
+                 , Memoria.Page.CreateQuestion
+                 , Memoria.Page.CreateQuestionSet
                  , Memoria.Page.Index
+                 , Memoria.Page.QuestionSet
                  , Memoria.Sessions
                  , Memoria.View.Base
+                 , Memoria.View.CreateQuestionSet
                  , Memoria.View.Index
+                 , Memoria.View.QuestionSet
                  , Memoria.View.Unauthenticated
 
 

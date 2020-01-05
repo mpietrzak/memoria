@@ -11,64 +11,178 @@
 module Memoria (loadConf, main) where
 
 import Control.Monad.Base (MonadBase)
-import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (MonadReader, ReaderT, ask, asks, runReaderT)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.State.Lazy (MonadState, StateT, runStateT, get, put)
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.Default.Class (def)
-import Data.Pool (Pool, createPool, takeResource, withResource)
+import Data.Foldable (for_)
+import Data.Pool (Pool, withResource)
 import Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as Data.Text.Lazy
-import qualified Data.UUID as Data.UUID
-import qualified Data.UUID.V4 as Data.UUID.V4;
+import Formatting ((%), fprint, shown, text)
+import qualified Data.ByteString.Lazy
+import qualified Data.Map.Lazy
+import qualified Data.Text.Lazy
+import qualified Data.Text.Lazy.Encoding
+import qualified Data.UUID
+import qualified Data.UUID.V4
 import qualified Database.HDBC.PostgreSQL as PSQL
+import qualified Network.Wai
 import qualified Network.Wai.Handler.Warp
+import qualified Web.Cookie
+import qualified Web.Scotty.Cookie
 import qualified Web.Scotty.Trans as ST
-import qualified Web.Scotty.Cookie as Web.Scotty.Cookie
 
+import Memoria.Common (HasParams(getParam), HasRedirects, HasRequestMethod, getRequestMethod)
+import Memoria.Cookies (HasCookies(getCookie, setCookie))
+import Memoria.Page.CreateAccount (handleCreateAccount)
+import Memoria.Page.CreateQuestion (handleCreateQuestion)
+import Memoria.Page.CreateQuestionSet (handleCreateQuestionSet)
 import Memoria.Page.Index (handleIndex)
-import Memoria.Sessions (HasSessions, generateRandomSessionId, getSessionValue, setSessionValue)
+import Memoria.Page.QuestionSet (handleQuestionSet)
+import Memoria.Sessions ( HasSessions, createSession, generateRandomSessionKey, getSessionValue, setSessionValue)
 import qualified Memoria.Common as Memoria.Common
 import qualified Memoria.Conf as Memoria.Conf
 import qualified Memoria.Db as Memoria.Db
 
-data State = State { stateDbPool :: Pool PSQL.Connection }
+data State = State { stateCookies :: Maybe (Data.Map.Lazy.Map Text Text)
+                   , stateDbPool :: Pool PSQL.Connection }
 
 newtype StateM a = StateM
-  { runStateM :: ReaderT State IO a
-  } deriving (Applicative, Functor, Monad, MonadBase IO, MonadBaseControl IO, MonadIO, MonadReader State)
-
-class HasCookies m where
-    getCookie :: Text -> m (Maybe Text)
-    setCookie :: Text -> Text -> m ()
+  { runStateM :: StateT State IO a
+  } deriving ( Applicative
+             , Functor
+             , Monad
+             , MonadBase IO
+             , MonadBaseControl IO
+             , MonadIO
+             , MonadState State )
 
 instance HasCookies (ST.ActionT Text StateM) where
     getCookie cookieName = do
-        mc <- Web.Scotty.Cookie.getCookie (Data.Text.Lazy.toStrict cookieName)
-        case mc of
-          Just v -> pure $ Just $ Data.Text.Lazy.fromStrict v
-          Nothing -> pure Nothing
-    setCookie cokoieName cookieValue = error "oops"
+        state <- lift get
+        case stateCookies state of
+            Just cookies -> case Data.Map.Lazy.lookup cookieName cookies of
+                Just stateCookie -> do
+                    -- Cookie already exists in this request's state cookies, just return it.
+                    pure $ Just stateCookie
+                Nothing -> do
+                    -- Not found in map, try to find in request
+                    mReqCookie <- Web.Scotty.Cookie.getCookie (Data.Text.Lazy.toStrict cookieName)
+                    case mReqCookie of
+                        Just reqCookieStrict -> do
+                            let reqCookie = Data.Text.Lazy.fromStrict reqCookieStrict
+                            let cookies' = Data.Map.Lazy.insert cookieName reqCookie cookies
+                            let state' = state { stateCookies = Just cookies' }
+                            lift $ put state'
+                            pure $ Just reqCookie
+                        Nothing -> pure Nothing
+            Nothing -> do
+                -- Cookies not found (yet) in state.
+                liftIO $ fprint
+                    ("getCookie: Cookies not yet in state\n")
+                mReqCookie <- Web.Scotty.Cookie.getCookie (Data.Text.Lazy.toStrict cookieName)
+                case mReqCookie of
+                    Just reqCookieStrict -> do
+                        let reqCookie = Data.Text.Lazy.fromStrict reqCookieStrict
+                        let cookies = Data.Map.Lazy.empty
+                        let cookies' = Data.Map.Lazy.insert cookieName reqCookie cookies
+                        let state' = state { stateCookies = Just cookies' }
+                        lift $ put state'
+                        pure $ Just reqCookie
+                    Nothing -> pure Nothing
+    setCookie cookieName cookieValue = do
+        liftIO $ fprint
+            ("setCookie: About to put cookie (" % text % " -> " % text % ") into state\n")
+            cookieName
+            cookieValue
+        state <- lift get
+        let cookies = case stateCookies state of
+                Nothing -> Data.Map.Lazy.empty
+                Just c -> c
+        let cookies' = Data.Map.Lazy.insert cookieName cookieValue cookies
+        liftIO $ fprint
+            ("setCookie: Saving cookies in state: " % shown % "\n")
+            cookies'
+        let state' = state { stateCookies = Just cookies' }
+        lift $ put state'
+
+instance HasParams (ST.ActionT Text StateM) where
+    getParam name = do
+        params <- ST.params
+        let val = lookup name params
+        pure val
+
+instance HasRedirects (ST.ActionT Text StateM) where
+    redirect loc = do
+        state <- lift get
+        case stateCookies state of
+            Nothing -> return ()
+            Just cookies -> setResponseCookies $ Data.Map.Lazy.toList cookies
+        ST.redirect loc
+
+instance HasRequestMethod (ST.ActionT Text StateM) where
+    getRequestMethod = do
+        request <- ST.request
+        pure $ Network.Wai.requestMethod request
 
 instance HasSessions (ST.ActionT Text StateM) where
-    generateRandomSessionId = do
+    createSession = do
+        sessionKey <- generateRandomSessionKey
+        Memoria.Db.createSession sessionKey
+        pure sessionKey
+    generateRandomSessionKey = do
         uuid <- liftIO $ Data.UUID.V4.nextRandom
         return $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
     getSessionValue name = do
         let sessionCookieName = "session_id"
-        mSessionId <- getCookie sessionCookieName
-        case mSessionId of
+        mSessionKey <- getCookie sessionCookieName
+        liftIO $ fprint ("getSessionValue: mSessionKey: " % shown % "\n") mSessionKey
+        case mSessionKey of
           Nothing -> pure Nothing
-          Just sessionId -> Memoria.Db.getSessionValue sessionId name
+          Just sessionKey -> Memoria.Db.getSessionValue sessionKey name
     setSessionValue name value = do
-        error "not implemented yet"
+        sessionKey <- ensureSession
+        liftIO $ fprint
+            ("setSessionValue: Ensured session with key: " % text % "\n")
+            sessionKey
+        _ <- Memoria.Db.setSessionValue sessionKey name value
+        pure ()
+        where
+            ensureSession = do
+                -- Check if cookie session is ok, create a new one if needed.
+                mCookieSessionKey <- getCookie sessionCookieName
+                case mCookieSessionKey of
+                  Nothing -> do
+                      -- No session cookie at all, just generate new
+                      sessionKey <- generateRandomSessionKey
+                      Memoria.Db.createSession sessionKey
+                      setCookie sessionCookieName sessionKey
+                      pure sessionKey
+                  Just cookieSessionKey -> do
+                      -- Session cookie found, but might be broken
+                      sessionExists <- Memoria.Db.sessionExists cookieSessionKey
+                      case sessionExists of
+                        True -> do
+                            -- Cookie exists, session exists, but we should probably
+                            -- poke it a little bit (todo).
+                            liftIO $ fprint
+                                ("setSessionValue: Session for " % text % " exists\n")
+                                cookieSessionKey
+                            pure cookieSessionKey
+                        False -> do
+                            key <- createSession
+                            setCookie sessionCookieName key
+                            pure key
+            sessionCookieName = "session_id" :: Text
+
 
 instance Memoria.Db.HasDbConn (ST.ActionT Text StateM) where
     getConnection = do
         error "not implemented yet"
     withConnection action = do
-        pool <- lift $ asks stateDbPool
+        state <- lift $ get
+        let pool = stateDbPool state
         withResource pool action
 
 instance Memoria.Db.HasDb (ST.ActionT Text StateM)
@@ -78,8 +192,32 @@ instance Memoria.Common.HasAccounts (ST.ActionT Text StateM)
 application :: ST.ScottyT Text StateM ()
 application = do
     ST.get "/" $ do
-        body <- handleIndex
+        body <- withSetCookies handleIndex
         ST.html body
+    ST.get "/create-account" $ do
+        body <- withSetCookies handleCreateAccount
+        ST.html body
+    ST.get "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
+    ST.get "/create-question-set" $ do
+        body <- withSetCookies handleCreateQuestionSet
+        ST.html body
+    ST.get "/question-set" $ withSetCookies handleQuestionSet >>= ST.html
+    ST.post "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
+    ST.post "/create-question-set" $ do
+        withSetCookies handleCreateQuestionSet >>= ST.html
+    where
+        withSetCookies a = do
+            liftIO $ fprint ("application.withSetCookies: Running action\n")
+            r <- a
+            state <- lift get
+            liftIO $ fprint
+                ("application.withSetCookies: State cookies after action: " % shown % "\n")
+                (stateCookies state)
+            case stateCookies state of
+                Nothing -> pure r
+                Just cookies -> do
+                    setResponseCookies $ Data.Map.Lazy.toList cookies
+                    pure r
 
 loadConf :: Text -> IO (Either Text Memoria.Conf.Conf)
 loadConf = Memoria.Conf.load
@@ -92,10 +230,27 @@ main conf = do
         (Memoria.Conf.cfgDbName conf)
         (Memoria.Conf.cfgDbUser conf)
         (Memoria.Conf.cfgDbPass conf)
-    let state = State { stateDbPool = pool }
-    let runIO m = runReaderT (runStateM m) state
+    let state = State { stateCookies = Nothing, stateDbPool = pool }
+    let runIO m = do
+            (result, _) <- runStateT (runStateM m) state
+            pure result
     let warpSettings = Network.Wai.Handler.Warp.setPort (Memoria.Conf.cfgPort conf)
             $ Network.Wai.Handler.Warp.defaultSettings
     let options = def { ST.settings = warpSettings }
     ST.scottyOptsT options runIO application
+
+
+setResponseCookies :: (Monad m, MonadIO m, ST.ScottyError e) => [(Text, Text)] -> ST.ActionT e m ()
+setResponseCookies cookies = for_ cookies $ \(k,v) -> do
+        liftIO $ fprint
+            ("setResponseCookies: Setting response cookie '" % text % "' -> '" % text % "'\n")
+            k
+            v
+        let cookieMaxAge = fromInteger (3600 * 24 * 30 * 12)
+        let toStrictBS = Data.ByteString.Lazy.toStrict
+                . Data.Text.Lazy.Encoding.encodeUtf8
+        let cookie = def { Web.Cookie.setCookieName = toStrictBS k
+                         , Web.Cookie.setCookieValue = toStrictBS v
+                         , Web.Cookie.setCookieMaxAge = (Just cookieMaxAge) }
+        Web.Scotty.Cookie.setCookie cookie
 
