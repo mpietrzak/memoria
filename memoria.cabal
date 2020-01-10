@@ -49,6 +49,7 @@ library
                  , Memoria.Page.QuestionSet
                  , Memoria.Sessions
                  , Memoria.View.Base
+                 , Memoria.View.CreateQuestion
                  , Memoria.View.CreateQuestionSet
                  , Memoria.View.Index
                  , Memoria.View.QuestionSet
