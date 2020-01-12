@@ -6,11 +6,14 @@ module Memoria.Db (
     HasDbConn(getConnection, withConnection),
     HasDb(createAccount, createSession, getDbSize, getSessionValue, setSessionValue),
     QuestionSet(..),
+    Question(..),
+    addQuestion,
     createDbPool,
     createQuestionSet,
     sessionExists,
     getQuestionSet,
-    getQuestionSetsForAccount
+    getQuestionSetsForAccount,
+    getQuestionSetQuestions
 ) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -29,6 +32,12 @@ import qualified Database.HDBC.PostgreSQL as PSQL
 
 data QuestionSet = QuestionSet { id :: Text, name :: Text }
 
+data Question = Question { qId :: Text
+                         , qQuestion :: Text
+                         , qAnswer :: Text
+                         , qCreatedAt :: Text
+                         , qModifiedAt :: Text }
+
 class MonadIO m => HasDbConn m where
     getConnection :: m (PSQL.Connection)
     withConnection :: (PSQL.Connection -> m b) -> m b
@@ -42,8 +51,7 @@ class HasDbConn m => HasDb m where
     getQuestionSetsForAccount :: Text -> m [QuestionSet]
 
     createAccount = do
-        accountId <- liftIO $ Data.UUID.V4.nextRandom >>= \uuid ->
-            pure $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
+        accountId <- newId
         withConnection $ \conn -> do
             let sql = [r|
                     insert into account (
@@ -62,8 +70,7 @@ class HasDbConn m => HasDb m where
     -- ID is a primary key. Key is a sessionId. ID is impl detail, key is a
     -- part of contract.
     createSession sessionKey = do
-        id <- liftIO $ Data.UUID.V4.nextRandom >>= \uuid ->
-            pure $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
+        id <- newId
         withConnection $ \conn -> do
             let sql = [r|
                     insert into session (
@@ -156,8 +163,7 @@ class HasDbConn m => HasDb m where
             name
             value
             sessionKey
-        id <- liftIO $ Data.UUID.V4.nextRandom >>= \uuid ->
-            pure $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
+        id <- newId
         let sql = [r|
                 insert into session_value (
                     id,
@@ -187,6 +193,43 @@ class HasDbConn m => HasDb m where
             liftIO $ HDBC.commit conn
         liftIO $ fprint ("Db.setSessionValue: Session value saved in DB\n")
         pure ()
+
+addQuestion :: (HasDbConn m, MonadIO m) => Text -> Text -> (Text, Text) -> m Text
+addQuestion accId questionSetId (question, answer) = do
+    withConnection $ \conn -> do
+        questionId <- newId
+        let sql = [r|
+                    insert into question (
+                        id,
+                        question_set,
+                        question,
+                        answer,
+                        created_at,
+                        modified_at
+                    ) values (
+                        ?,
+                        (
+                            select
+                                id
+                            from
+                                question_set
+                            where
+                                owner = ?
+                                and id = ?
+                        ),
+                        ?,
+                        ?,
+                        current_timestamp,
+                        current_timestamp
+                    )
+                |]
+        liftIO $ HDBC.run conn sql [ HDBC.toSql questionId
+                                   , HDBC.toSql accId
+                                   , HDBC.toSql questionSetId
+                                   , HDBC.toSql question
+                                   , HDBC.toSql answer ]
+        liftIO $ HDBC.commit conn
+        pure questionId
 
 createConnection :: Text -> Int -> Text -> Text -> Text -> IO (PSQL.Connection)
 createConnection host port db user pass = do
@@ -247,6 +290,39 @@ getQuestionSet owner id = do
                 owner = ?
                 and id = ?
         |]
+
+getQuestionSetQuestions :: (HasDbConn m) => Text -> Text -> m [Question]
+getQuestionSetQuestions owner id = do
+    withConnection $ \conn -> do
+        rows <- liftIO $ HDBC.quickQuery conn sql params
+        pure $ map rowToQuestion rows
+    where
+        params = [ HDBC.toSql owner, HDBC.toSql id ]
+        rowToQuestion row = case row of
+            [id, question, answer, createdAt, modifiedAt] -> Question
+                { qId = HDBC.fromSql id
+                , qQuestion = HDBC.fromSql question
+                , qAnswer = HDBC.fromSql answer
+                , qCreatedAt = HDBC.fromSql createdAt
+                , qModifiedAt = HDBC.fromSql modifiedAt }
+            _ -> error "Can't convert a row to Question: invalid number of columns"
+        sql = [r|
+                select
+                    id,
+                    question,
+                    answer,
+                    created_at,
+                    modified_at
+                from
+                    question
+                where
+                    question_set = (select id from question_set where owner = ? and id = ?)
+                order by id
+            |]
+
+newId :: (MonadIO m) => m Text
+newId = liftIO $ Data.UUID.V4.nextRandom
+    >>= \uuid -> pure $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
 
 sessionExists :: (Monad m, HasDb m) => Text -> m Bool
 sessionExists sessionKey = do

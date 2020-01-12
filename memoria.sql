@@ -37,7 +37,7 @@ create index session_value_value_i on session_value (value);
 
 
 create table question_set (
-    id varchar(128) not null,
+    id varchar(128) not null primary key,
     name varchar(128) not null,
     owner varchar(128) not null references account,
     created_at timestamp not null,
@@ -47,4 +47,20 @@ create table question_set (
 create index question_set_ui on question_set (owner, name);
 create index question_set_created_i on question_set (created_at);
 create index question_set_modified_i on question_set (modified_at);
+
+
+create table question (
+    id varchar(128) not null primary key,
+    question_set varchar(128) not null references question_set,
+    question varchar(1024) not null,
+    answer varchar(1024) not null,
+    created_at timestamp not null,
+    modified_at timestamp not null
+);
+
+create index question_question_set_i on question (question_set);
+create index question_created_i on question (created_at);
+create index question_modified_i on question (modified_at);
+
+
 

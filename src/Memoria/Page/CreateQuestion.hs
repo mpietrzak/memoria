@@ -4,10 +4,11 @@ module Memoria.Page.CreateQuestion (
     handleCreateQuestion
 ) where
 
-import Formatting ((%), fprint, text, shown)
+import Control.Monad.IO.Class (liftIO)
 import Data.Default.Class (def)
 import Data.Text.Lazy (Text)
-import Control.Monad.IO.Class (liftIO)
+import Formatting ((%), fprint, text, shown)
+import qualified Data.Maybe
 
 import qualified Memoria.Db
 import qualified Memoria.View.CreateQuestion as V
@@ -31,10 +32,10 @@ processField fieldName validator fieldSetter errSetter formData = do
         mval
     let validationResult = validator mval
     case validationResult of
-        Left err -> pure $ errSetter err formData
-        Right val -> pure $ fieldSetter val formData
+        Left err -> pure $ (False, errSetter err formData)
+        Right val -> pure $ (True, fieldSetter val formData)
 
-handleCreateQuestion :: (Memoria.Common.HasAccounts m, Memoria.Common.HasParams m) => m Text
+handleCreateQuestion :: (Memoria.Common.HasAccounts m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m, Memoria.Common.HasRequestMethod m) => m Text
 handleCreateQuestion = do
     accId <- Memoria.Common.getAccountId >>= \m -> case m of
         Just accId -> pure accId
@@ -42,6 +43,10 @@ handleCreateQuestion = do
     dbSize <- Memoria.Db.getDbSize >>= \m -> case m of
         Right s -> pure s
         Left _ -> error "Error getting db size"
+    questionSetId <- Memoria.Common.getParam "question-set"
+        >>= \m -> case m of
+            Just id -> pure id
+            Nothing -> error "Question set id is required"
     let fields = [
                 (
                     "question",
@@ -56,17 +61,35 @@ handleCreateQuestion = do
                     \e f -> f { V.answerErr = Just e }
                 )
              ]
-    formData <- processFormData def fields
-    liftIO $ fprint
-        ("handleCreateQuestion: Form data: " % shown % "\n")
-        formData
-    pure $ V.renderCreateQuestion dbSize formData
-
+    method <- Memoria.Common.getRequestMethod
+    (isFormDataValid, formData) <- case method of
+        "GET" -> pure (False, def)
+        _ -> processFormData fields
+    case (method, isFormDataValid) of
+        ("GET", _) -> pure $ V.renderCreateQuestion dbSize questionSetId formData
+        ("POST", False) -> pure $ V.renderCreateQuestion dbSize questionSetId formData
+        ("POST", True) -> do
+            -- yay?
+            Memoria.Db.addQuestion
+                accId
+                questionSetId
+                (
+                    (Data.Maybe.fromJust $ V.question formData),
+                    (Data.Maybe.fromJust $ V.answer formData))
+            Memoria.Common.redirect "/"
+            pure ""
     where
-        processFormData formData fields = case fields of
+        processFormData fields = processFormDataGo True def fields
+        processFormDataGo isFormValid formData fields = case fields of
             (f:fs) -> do
                 let (name, validator, fieldSetter, errSetter) = f
-                newFormData <- processField name validator fieldSetter errSetter formData
-                processFormData newFormData fs
-            _ -> pure formData
+                (isFieldValid, newFormData) <- processField
+                    name
+                    validator
+                    fieldSetter
+                    errSetter
+                    formData
+                let newIsFormValid = isFieldValid && isFormValid
+                processFormDataGo newIsFormValid newFormData fs
+            _ -> pure (isFormValid, formData)
 

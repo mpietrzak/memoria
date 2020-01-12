@@ -29,12 +29,12 @@ instance Default CreateQuestionFormData where
     Nothing -> h
     Just a -> h ! a
 
-renderCreateQuestion :: Integer -> CreateQuestionFormData -> Text
-renderCreateQuestion dbSize formData = do
+renderCreateQuestion :: Integer -> Text -> CreateQuestionFormData -> Text
+renderCreateQuestion dbSize questionSetId formData = do
     let footer = Memoria.View.Base.footer dbSize
     let content = H.div $ do
             H.p "Adding question"
-            H.form $ do
+            H.form ! A.method "post" $ do
                 H.table $ do
                     H.tr $ do
                         H.td "Question:"
@@ -58,6 +58,10 @@ renderCreateQuestion dbSize formData = do
                         errTd $ answerErr formData
                     H.tr $ do
                         H.td ! A.align "right" ! A.colspan "2" $ do
+                            H.input
+                                ! A.type_ "hidden"
+                                ! A.name "question-set"
+                                ! (A.value (H.toValue questionSetId))
                             H.button ! A.type_ "submit" $ do
                                 "Ok"
     Memoria.View.Base.render content footer
