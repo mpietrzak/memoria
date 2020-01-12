@@ -2,6 +2,7 @@
 
 module Memoria.Common (
     HasAccounts,
+    HasCsrfToken(..),
     HasParams(getParam),
     HasRedirects(redirect),
     HasRequestMethod,
@@ -17,10 +18,12 @@ import qualified Network.HTTP.Types.Method
 
 import Memoria.Sessions (HasSessions, getSessionValue)
 
-
 sessionAccountIdKey :: Text
 sessionAccountIdKey = "account_id"
 
+class HasCsrfToken m where
+    checkCsrfToken :: Text -> m ()
+    ensureCsrfToken :: m Text
 
 class HasParams m where
     getParam :: Text -> m (Maybe Text)

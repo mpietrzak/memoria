@@ -1,10 +1,11 @@
 
 module Memoria.Sessions (
-    HasSessions(
-    createSession,
-    generateRandomSessionKey,
-    getSessionValue,
-    setSessionValue
+    HasSessions (
+        createSession,
+        generateRandomSessionKey,
+        getSessionValue,
+        ensureSession,
+        setSessionValue
     )
 )
 where
@@ -17,4 +18,5 @@ class Memoria.Db.HasDb m => HasSessions m where
     createSession :: m Text
     generateRandomSessionKey :: m Text
     getSessionValue :: Text -> m (Maybe Text)
+    ensureSession :: m Text
     setSessionValue :: Text -> Text -> m ()

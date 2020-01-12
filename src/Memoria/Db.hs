@@ -10,10 +10,12 @@ module Memoria.Db (
     addQuestion,
     createDbPool,
     createQuestionSet,
+    ensureCsrfToken,
     sessionExists,
     getQuestionSet,
     getQuestionSetsForAccount,
-    getQuestionSetQuestions
+    getQuestionSetQuestions,
+    getRandomQuestion
 ) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -319,6 +321,94 @@ getQuestionSetQuestions owner id = do
                     question_set = (select id from question_set where owner = ? and id = ?)
                 order by id
             |]
+
+getRandomQuestion :: HasDbConn m => Text -> m Question
+getRandomQuestion accId = do
+    go
+    where
+        go = do
+            r <- newId
+            withConnection $ \conn -> do
+                let params = [ HDBC.toSql r
+                             , HDBC.toSql accId ]
+                rows <- liftIO $ HDBC.quickQuery conn sql params
+                case rows of
+                    [[id, question, answer, createdAt, modifiedAt]] ->
+                        pure $ Question { qId = HDBC.fromSql id
+                                        , qQuestion = HDBC.fromSql question
+                                        , qAnswer = HDBC.fromSql answer
+                                        , qCreatedAt = HDBC.fromSql createdAt
+                                        , qModifiedAt = HDBC.fromSql modifiedAt }
+                    _ -> go
+        sql = [r|
+                select
+                    id,
+                    question,
+                    answer,
+                    created_at,
+                    modified_at
+                from question
+                where
+                    id > ?
+                    and question_set in (
+                        select id
+                        from question_set
+                        where owner = ?
+                    )
+                order by id
+                limit 1
+            |]
+
+ensureCsrfToken :: HasDbConn m => Text -> m Text
+ensureCsrfToken sessionKey = do
+    mExistingCsrfToken <- withConnection $ \conn -> do
+        rows <- liftIO $ HDBC.quickQuery conn selectSql [HDBC.toSql sessionKey]
+        case rows of
+            [row] -> case row of
+                [v] -> pure $ Just $ HDBC.fromSql v
+                _ -> error "Can't select CSRF token, invalid number of columns"
+            _ -> pure Nothing
+    case mExistingCsrfToken of
+        Just token -> pure token
+        Nothing -> do
+            newCsrfToken <- newId
+            newSessionValueId <- newId
+            withConnection $ \conn -> do
+                liftIO $ HDBC.run conn insertSql [ HDBC.toSql newSessionValueId
+                                                 , HDBC.toSql sessionKey
+                                                 , HDBC.toSql newCsrfToken ]
+                liftIO $ HDBC.commit conn
+            withConnection $ \conn -> do
+                rows <- liftIO $ HDBC.quickQuery conn selectSql [HDBC.toSql sessionKey]
+                case rows of
+                    [[v]] -> pure $ HDBC.fromSql v
+                    _ -> error "Can't select CSRF token, even after upsert"
+    where
+        insertSql = [r|
+                insert into session_value (
+                    id,
+                    session,
+                    name,
+                    value,
+                    created_at,
+                    modified_at
+                ) values (
+                    ?,
+                    (select id from session where key = ?),
+                    'csrf_token',
+                    ?,
+                    current_timestamp,
+                    current_timestamp
+                )
+                on conflict do nothing
+            |]
+        selectSql = [r|
+                select value from session_value
+                where
+                    session = (select id from session where key = ?)
+                    and name = 'csrf_token'
+            |]
+
 
 newId :: (MonadIO m) => m Text
 newId = liftIO $ Data.UUID.V4.nextRandom

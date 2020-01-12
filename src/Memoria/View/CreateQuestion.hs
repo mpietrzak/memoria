@@ -29,10 +29,11 @@ instance Default CreateQuestionFormData where
     Nothing -> h
     Just a -> h ! a
 
-renderCreateQuestion :: Integer -> Text -> CreateQuestionFormData -> Text
-renderCreateQuestion dbSize questionSetId formData = do
+renderCreateQuestion :: Integer -> Text -> Text -> CreateQuestionFormData -> Text
+renderCreateQuestion dbSize questionSetId csrfToken formData = do
     let footer = Memoria.View.Base.footer dbSize
     let content = H.div $ do
+            Memoria.View.Base.menu
             H.p "Adding question"
             H.form ! A.method "post" $ do
                 H.table $ do
@@ -58,6 +59,10 @@ renderCreateQuestion dbSize questionSetId formData = do
                         errTd $ answerErr formData
                     H.tr $ do
                         H.td ! A.align "right" ! A.colspan "2" $ do
+                            H.input
+                                ! A.name "csrf-token"
+                                ! A.type_ "hidden"
+                                ! (A.value (H.toValue csrfToken))
                             H.input
                                 ! A.type_ "hidden"
                                 ! A.name "question-set"

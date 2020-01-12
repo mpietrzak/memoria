@@ -40,10 +40,13 @@ import Memoria.Page.CreateQuestion (handleCreateQuestion)
 import Memoria.Page.CreateQuestionSet (handleCreateQuestionSet)
 import Memoria.Page.Index (handleIndex)
 import Memoria.Page.QuestionSet (handleQuestionSet)
-import Memoria.Sessions ( HasSessions, createSession, generateRandomSessionKey, getSessionValue, setSessionValue)
+import Memoria.Page.Test (handleTest)
+import Memoria.Sessions ( HasSessions, createSession, generateRandomSessionKey, getSessionValue, ensureSession, setSessionValue)
 import qualified Memoria.Common as Memoria.Common
 import qualified Memoria.Conf as Memoria.Conf
 import qualified Memoria.Db as Memoria.Db
+
+sessionCookieName = "session_id" :: Text
 
 data State = State { stateCookies :: Maybe (Data.Map.Lazy.Map Text Text)
                    , stateDbPool :: Pool PSQL.Connection }
@@ -107,6 +110,16 @@ instance HasCookies (ST.ActionT Text StateM) where
         let state' = state { stateCookies = Just cookies' }
         lift $ put state'
 
+instance Memoria.Common.HasCsrfToken (ST.ActionT Text StateM) where
+    checkCsrfToken token = do
+        goodCsrfToken <- getSessionValue "csrf_token"
+        case Just token == goodCsrfToken of
+            True -> pure ()
+            False -> error "CSRF does not match"
+    ensureCsrfToken = do
+        sessionKey <- ensureSession
+        Memoria.Db.ensureCsrfToken sessionKey
+
 instance HasParams (ST.ActionT Text StateM) where
     getParam name = do
         params <- ST.params
@@ -148,33 +161,31 @@ instance HasSessions (ST.ActionT Text StateM) where
             sessionKey
         _ <- Memoria.Db.setSessionValue sessionKey name value
         pure ()
-        where
-            ensureSession = do
-                -- Check if cookie session is ok, create a new one if needed.
-                mCookieSessionKey <- getCookie sessionCookieName
-                case mCookieSessionKey of
-                  Nothing -> do
-                      -- No session cookie at all, just generate new
-                      sessionKey <- generateRandomSessionKey
-                      Memoria.Db.createSession sessionKey
-                      setCookie sessionCookieName sessionKey
-                      pure sessionKey
-                  Just cookieSessionKey -> do
-                      -- Session cookie found, but might be broken
-                      sessionExists <- Memoria.Db.sessionExists cookieSessionKey
-                      case sessionExists of
-                        True -> do
-                            -- Cookie exists, session exists, but we should probably
-                            -- poke it a little bit (todo).
-                            liftIO $ fprint
-                                ("setSessionValue: Session for " % text % " exists\n")
-                                cookieSessionKey
-                            pure cookieSessionKey
-                        False -> do
-                            key <- createSession
-                            setCookie sessionCookieName key
-                            pure key
-            sessionCookieName = "session_id" :: Text
+    ensureSession = do
+        -- Check if cookie session is ok, create a new one if needed.
+        mCookieSessionKey <- getCookie sessionCookieName
+        case mCookieSessionKey of
+          Nothing -> do
+              -- No session cookie at all, just generate new
+              sessionKey <- generateRandomSessionKey
+              Memoria.Db.createSession sessionKey
+              setCookie sessionCookieName sessionKey
+              pure sessionKey
+          Just cookieSessionKey -> do
+              -- Session cookie found, but might be broken
+              sessionExists <- Memoria.Db.sessionExists cookieSessionKey
+              case sessionExists of
+                True -> do
+                    -- Cookie exists, session exists, but we should probably
+                    -- poke it a little bit (todo).
+                    liftIO $ fprint
+                        ("setSessionValue: Session for " % text % " exists\n")
+                        cookieSessionKey
+                    pure cookieSessionKey
+                False -> do
+                    key <- createSession
+                    setCookie sessionCookieName key
+                    pure key
 
 
 instance Memoria.Db.HasDbConn (ST.ActionT Text StateM) where
@@ -198,13 +209,11 @@ application = do
         body <- withSetCookies handleCreateAccount
         ST.html body
     ST.get "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
-    ST.get "/create-question-set" $ do
-        body <- withSetCookies handleCreateQuestionSet
-        ST.html body
+    ST.get "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
     ST.get "/question-set" $ withSetCookies handleQuestionSet >>= ST.html
+    ST.get "/test" $ withSetCookies handleTest >>= ST.html
     ST.post "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
-    ST.post "/create-question-set" $ do
-        withSetCookies handleCreateQuestionSet >>= ST.html
+    ST.post "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
     where
         withSetCookies a = do
             liftIO $ fprint ("application.withSetCookies: Running action\n")

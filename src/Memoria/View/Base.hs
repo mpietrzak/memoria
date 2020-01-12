@@ -23,6 +23,12 @@ css = [r|
             margin-top: 10px;
         }
 
+        div.menu div.menu-item {
+            display: inline-block;
+            margin-right: 2px;
+            width: auto;
+        }
+
         div.footer {
             font-size: 90%;
             margin-bottom: 100px;
@@ -40,13 +46,17 @@ footer dbSize = do
 menu :: H.Html
 menu = do
     H.div ! A.class_ "menu" $ do
-        "["
-        H.a ! A.href "/" $ "index"
-        "]"
-        "["
-        H.a ! A.href "create-question-set" $ do
-            "create question set"
-        "]"
+        menuItem "/" "index"
+        menuItem "create-question-set" "create question set"
+        menuItem "test" "test"
+    where
+        menuItem href linkText = do
+            H.div ! A.class_ "menu-item" $ do
+                "["
+                H.a
+                    ! A.href href
+                    $ linkText
+                "]"
 
 render :: H.Html -> H.Html -> Text
 render content footer = renderMarkup $ H.docTypeHtml $ do

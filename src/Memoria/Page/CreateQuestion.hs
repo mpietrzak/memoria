@@ -35,7 +35,7 @@ processField fieldName validator fieldSetter errSetter formData = do
         Left err -> pure $ (False, errSetter err formData)
         Right val -> pure $ (True, fieldSetter val formData)
 
-handleCreateQuestion :: (Memoria.Common.HasAccounts m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m, Memoria.Common.HasRequestMethod m) => m Text
+handleCreateQuestion :: (Memoria.Common.HasAccounts m, Memoria.Common.HasCsrfToken m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m, Memoria.Common.HasRequestMethod m) => m Text
 handleCreateQuestion = do
     accId <- Memoria.Common.getAccountId >>= \m -> case m of
         Just accId -> pure accId
@@ -61,15 +61,19 @@ handleCreateQuestion = do
                     \e f -> f { V.answerErr = Just e }
                 )
              ]
+    csrfToken <- Memoria.Common.ensureCsrfToken
     method <- Memoria.Common.getRequestMethod
     (isFormDataValid, formData) <- case method of
         "GET" -> pure (False, def)
         _ -> processFormData fields
     case (method, isFormDataValid) of
-        ("GET", _) -> pure $ V.renderCreateQuestion dbSize questionSetId formData
-        ("POST", False) -> pure $ V.renderCreateQuestion dbSize questionSetId formData
+        ("GET", _) -> pure $ V.renderCreateQuestion dbSize questionSetId csrfToken formData
+        ("POST", False) -> pure $ V.renderCreateQuestion dbSize questionSetId csrfToken formData
         ("POST", True) -> do
-            -- yay?
+            actualCsrfToken <- Memoria.Common.getParam "csrf-token" >>= \c -> case c of
+                Nothing -> error "CSRF token is required"
+                Just t -> pure t
+            Memoria.Common.checkCsrfToken actualCsrfToken
             Memoria.Db.addQuestion
                 accId
                 questionSetId
