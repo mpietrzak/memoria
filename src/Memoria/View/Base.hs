@@ -49,6 +49,7 @@ menu = do
         menuItem "/" "index"
         menuItem "create-question-set" "create question set"
         menuItem "test" "test"
+        menuItem "settings" "settings"
     where
         menuItem href linkText = do
             H.div ! A.class_ "menu-item" $ do

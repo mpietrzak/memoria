@@ -47,6 +47,7 @@ library
                  , Memoria.Page.CreateQuestionSet
                  , Memoria.Page.Index
                  , Memoria.Page.QuestionSet
+                 , Memoria.Page.Settings
                  , Memoria.Page.Test
                  , Memoria.Sessions
                  , Memoria.View.Base
@@ -54,6 +55,7 @@ library
                  , Memoria.View.CreateQuestionSet
                  , Memoria.View.Index
                  , Memoria.View.QuestionSet
+                 , Memoria.View.Settings
                  , Memoria.View.Test
                  , Memoria.View.Unauthenticated
 

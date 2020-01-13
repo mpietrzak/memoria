@@ -40,6 +40,7 @@ import Memoria.Page.CreateQuestion (handleCreateQuestion)
 import Memoria.Page.CreateQuestionSet (handleCreateQuestionSet)
 import Memoria.Page.Index (handleIndex)
 import Memoria.Page.QuestionSet (handleQuestionSet)
+import Memoria.Page.Settings (handleSettings)
 import Memoria.Page.Test (handleTest)
 import Memoria.Sessions ( HasSessions, createSession, generateRandomSessionKey, getSessionValue, ensureSession, setSessionValue)
 import qualified Memoria.Common as Memoria.Common
@@ -211,6 +212,7 @@ application = do
     ST.get "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.get "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
     ST.get "/question-set" $ withSetCookies handleQuestionSet >>= ST.html
+    ST.get "/settings" $ withSetCookies handleSettings >>= ST.html
     ST.get "/test" $ withSetCookies handleTest >>= ST.html
     ST.post "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.post "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
