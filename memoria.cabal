@@ -68,5 +68,5 @@ executable memoria
                  , data-default-class >= 0.1
                  , formatting >= 6.3.7
                  , memoria >= 0.0.1
-    ghc-options: -O -Wall -rtsopts -threaded -debug
+    ghc-options: -O -Wall -rtsopts -threaded
 
