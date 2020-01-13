@@ -326,23 +326,38 @@ getRandomQuestion :: HasDbConn m => Text -> m Question
 getRandomQuestion accId = do
     go 0
     where
-        go i = if i < 1000
+        go i = if i < 100
             then do
+                if i > 10
+                    then
+                        liftIO $ fprint
+                            (
+                                "getRandomQuestion: Searching for a random question, "
+                                % "acc: " % text % ", "
+                                % "attempt " % int % "\n"
+                            )
+                            accId
+                            i
+                    else
+                        pure ()
                 r <- newId
-                withConnection $ \conn -> do
+                mq <- withConnection $ \conn -> do
                     let params = [ HDBC.toSql r
                                  , HDBC.toSql accId ]
                     rows <- liftIO $ HDBC.quickQuery conn sql params
                     case rows of
                         [[id, question, answer, createdAt, modifiedAt]] ->
-                            pure $ Question { qId = HDBC.fromSql id
-                                            , qQuestion = HDBC.fromSql question
-                                            , qAnswer = HDBC.fromSql answer
-                                            , qCreatedAt = HDBC.fromSql createdAt
-                                            , qModifiedAt = HDBC.fromSql modifiedAt }
-                        _ -> go (i + 1)
+                            pure $ Just $ Question { qId = HDBC.fromSql id
+                                                   , qQuestion = HDBC.fromSql question
+                                                   , qAnswer = HDBC.fromSql answer
+                                                   , qCreatedAt = HDBC.fromSql createdAt
+                                                   , qModifiedAt = HDBC.fromSql modifiedAt }
+                        _ -> pure Nothing
+                case mq of
+                    Just q -> pure q
+                    Nothing -> go (i + 1)
             else
-                error "Can't get random question"
+                error "Can't get random question, too many attempts"
         sql = [r|
                 select
                     id,
