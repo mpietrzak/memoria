@@ -324,22 +324,25 @@ getQuestionSetQuestions owner id = do
 
 getRandomQuestion :: HasDbConn m => Text -> m Question
 getRandomQuestion accId = do
-    go
+    go 0
     where
-        go = do
-            r <- newId
-            withConnection $ \conn -> do
-                let params = [ HDBC.toSql r
-                             , HDBC.toSql accId ]
-                rows <- liftIO $ HDBC.quickQuery conn sql params
-                case rows of
-                    [[id, question, answer, createdAt, modifiedAt]] ->
-                        pure $ Question { qId = HDBC.fromSql id
-                                        , qQuestion = HDBC.fromSql question
-                                        , qAnswer = HDBC.fromSql answer
-                                        , qCreatedAt = HDBC.fromSql createdAt
-                                        , qModifiedAt = HDBC.fromSql modifiedAt }
-                    _ -> go
+        go i = if i < 1000
+            then do
+                r <- newId
+                withConnection $ \conn -> do
+                    let params = [ HDBC.toSql r
+                                 , HDBC.toSql accId ]
+                    rows <- liftIO $ HDBC.quickQuery conn sql params
+                    case rows of
+                        [[id, question, answer, createdAt, modifiedAt]] ->
+                            pure $ Question { qId = HDBC.fromSql id
+                                            , qQuestion = HDBC.fromSql question
+                                            , qAnswer = HDBC.fromSql answer
+                                            , qCreatedAt = HDBC.fromSql createdAt
+                                            , qModifiedAt = HDBC.fromSql modifiedAt }
+                        _ -> go (i + 1)
+            else
+                error "Can't get random question"
         sql = [r|
                 select
                     id,
