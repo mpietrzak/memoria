@@ -5,6 +5,7 @@
 module Memoria.Db (
     HasDbConn(getConnection, withConnection),
     HasDb(createAccount, createSession, getDbSize, getSessionValue, setSessionValue),
+    AccountEmail(..),
     QuestionSet(..),
     Question(..),
     addQuestion,
@@ -12,6 +13,7 @@ module Memoria.Db (
     createQuestionSet,
     ensureCsrfToken,
     sessionExists,
+    getAccountEmails,
     getQuestionSet,
     getQuestionSetsForAccount,
     getQuestionSetQuestions,
@@ -31,6 +33,11 @@ import qualified Data.UUID as Data.UUID
 import qualified Data.UUID.V4 as Data.UUID.V4
 import qualified Database.HDBC as HDBC
 import qualified Database.HDBC.PostgreSQL as PSQL
+
+data AccountEmail = AccountEmail { aeId :: Text
+                                 , aeEmail :: Text
+                                 , aeCreatedAt :: Text
+                                 , aeModifiedAt :: Text }
 
 data QuestionSet = QuestionSet { id :: Text, name :: Text }
 
@@ -272,6 +279,26 @@ destroyConnection :: PSQL.Connection -> IO ()
 destroyConnection conn = do
     HDBC.disconnect conn
     fprint "destroyConnection: Closed connection\n"
+
+getAccountEmails :: (HasDbConn m) => Text -> m [AccountEmail]
+getAccountEmails accId = do
+    withConnection $ \conn -> do
+        let sql = [r|
+                    select id, email, created_at, modified_at
+                    from account_email
+                    where account = ?
+                    order by id
+                |]
+        let params = [HDBC.toSql accId]
+        rows <- liftIO $ HDBC.quickQuery conn sql params
+        pure $ map rowToAccEmail rows
+    where
+        rowToAccEmail row = case row of
+            [id, email, createdAt, modifiedAt] ->
+                AccountEmail { aeId = HDBC.fromSql id
+                             , aeEmail = HDBC.fromSql email
+                             , aeCreatedAt = HDBC.fromSql createdAt
+                             , aeModifiedAt = HDBC.fromSql modifiedAt }
 
 getQuestionSet :: (HasDbConn m, MonadIO m) => Text -> Text -> m QuestionSet
 getQuestionSet owner id = do

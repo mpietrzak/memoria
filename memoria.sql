@@ -66,11 +66,13 @@ create index question_modified_i on question (modified_at);
 create table account_email (
     id varchar(128) not null primary key,
     account varchar(128) not null references account,
+    email varchar(128) not null,
     created_at timestamp not null,
     modified_at timestamp not null
 );
 
 create index account_email_account_i on account_email (account);
+create index account_email_email_i on account_email (email);
 create index account_email_created_i on account_email (created_at);
 create index account_email_modified_i on account_email (modified_at);
 
