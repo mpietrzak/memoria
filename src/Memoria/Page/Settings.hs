@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Memoria.Page.Settings (
-    handleSettings
+    handleSettings,
+    handleSettingsAddEmail
 ) where
 
 import Data.Text.Lazy (Text)
@@ -26,3 +27,10 @@ handleSettings = do
                                                   , V.aeEmail = DB.aeEmail dbEmail
                                                   , V.aeCreatedAt = DB.aeCreatedAt dbEmail
                                                   , V.aeModifiedAt = DB.aeModifiedAt dbEmail }
+
+handleSettingsAddEmail :: (Monad m, DB.HasDb m) => m Text
+handleSettingsAddEmail = do
+    dbSize <- DB.getDbSize >>= \m -> case m of
+        Right s -> pure s
+        Left _ -> error "Error getting db size"
+    pure $ V.renderSettingsAddEmail dbSize
