@@ -204,12 +204,8 @@ instance Memoria.Common.HasAccounts (ST.ActionT Text StateM)
 
 application :: ST.ScottyT Text StateM ()
 application = do
-    ST.get "/" $ do
-        body <- withSetCookies handleIndex
-        ST.html body
-    ST.get "/create-account" $ do
-        body <- withSetCookies handleCreateAccount
-        ST.html body
+    ST.get "/" $ withSetCookies handleIndex >>= ST.html
+    ST.get "/create-account" $ withSetCookies handleCreateAccount >>= ST.html
     ST.get "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.get "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
     ST.get "/question-set" $ withSetCookies handleQuestionSet >>= ST.html
@@ -218,6 +214,7 @@ application = do
     ST.get "/test" $ withSetCookies handleTest >>= ST.html
     ST.post "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.post "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
+    ST.post "/settings-add-email" $ withSetCookies handleSettingsAddEmail >>= ST.html
     where
         withSetCookies a = do
             liftIO $ fprint ("application.withSetCookies: Running action\n")

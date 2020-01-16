@@ -5,11 +5,34 @@ module Memoria.Page.Settings (
     handleSettingsAddEmail
 ) where
 
+import Control.Monad.IO.Class (liftIO)
+import Data.Default.Class (Default(def))
 import Data.Text.Lazy (Text)
+import Formatting ((%), fprint, text, shown)
+import qualified Data.Text.Lazy
 
 import qualified Memoria.Common
 import qualified Memoria.Db as DB
 import qualified Memoria.View.Settings as V
+
+validateEmail val = case val of
+    Nothing -> Left "Email is required"
+    Just _v -> case Data.Text.Lazy.strip _v of
+        "" -> Left "Email is required"
+        _v -> case Data.Text.Lazy.find (\c -> c == '@') _v of
+            Nothing -> Left "Email must have a @ in it"
+            Just _ -> Right (Just _v)
+
+processField fieldName validator fieldSetter errSetter formData = do
+    mval <- Memoria.Common.getParam fieldName
+    liftIO $ fprint
+        ("processField: Field " % text % " has value " % shown % "\n")
+        fieldName
+        mval
+    let validationResult = validator mval
+    case validationResult of
+        Left err -> pure $ (False, fieldSetter mval $ errSetter err formData)
+        Right val -> pure $ (True, fieldSetter val formData)
 
 handleSettings :: (Monad m, DB.HasDb m, Memoria.Common.HasAccounts m) => m Text
 handleSettings = do
@@ -28,9 +51,43 @@ handleSettings = do
                                                   , V.aeCreatedAt = DB.aeCreatedAt dbEmail
                                                   , V.aeModifiedAt = DB.aeModifiedAt dbEmail }
 
-handleSettingsAddEmail :: (Monad m, DB.HasDb m) => m Text
+handleSettingsAddEmail :: (Monad m, DB.HasDb m, Memoria.Common.HasParams m, Memoria.Common.HasRequestMethod m) => m Text
 handleSettingsAddEmail = do
     dbSize <- DB.getDbSize >>= \m -> case m of
         Right s -> pure s
         Left _ -> error "Error getting db size"
-    pure $ V.renderSettingsAddEmail dbSize
+    let fields = [
+                (
+                    "email",
+                    validateEmail,
+                    \v f -> f { V.aefEmail = v },
+                    \e f -> f { V.aefEmailErr = Just e }
+                )
+             ]
+    method <- Memoria.Common.getRequestMethod
+    case method of
+        "GET" -> pure $ V.renderSettingsAddEmail dbSize def
+        "POST" -> do
+            (isFormValid, formData) <- processFormData fields
+            liftIO $ fprint
+                ("handleSettingsAddEmail: formData: " % shown % "\n")
+                formData
+            case isFormValid of
+                False -> pure $ V.renderSettingsAddEmail dbSize formData
+                True -> do
+                    error "TODO: add in DB"
+    where
+        processFormData fields = processFormDataGo True def fields
+        processFormDataGo isFormValid formData fields = case fields of
+            (f:fs) -> do
+                let (name, validator, fieldSetter, errSetter) = f
+                (isFieldValid, newFormData) <- processField
+                    name
+                    validator
+                    fieldSetter
+                    errSetter
+                    formData
+                let newIsFormValid = isFieldValid && isFormValid
+                processFormDataGo newIsFormValid newFormData fs
+            _ -> pure (isFormValid, formData)
+
