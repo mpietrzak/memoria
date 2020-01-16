@@ -70,7 +70,6 @@ renderCreateQuestion dbSize questionSetId csrfToken formData = do
                             H.button ! A.type_ "submit" $ do
                                 "Ok"
     Memoria.View.Base.render content footer
-
     where
         errTd me = case me of
             Nothing -> ""
