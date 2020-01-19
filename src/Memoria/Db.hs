@@ -5,6 +5,7 @@
 module Memoria.Db (
     HasDbConn(getConnection, withConnection),
     HasDb(createAccount, createSession, getDbSize, getSessionValue, setSessionValue),
+    Account(..),
     AccountEmail(..),
     QuestionSet(..),
     Question(..),
@@ -13,12 +14,13 @@ module Memoria.Db (
     createDbPool,
     createQuestionSet,
     ensureCsrfToken,
-    sessionExists,
     getAccountEmails,
+    getAccountsByEmail,
     getQuestionSet,
-    getQuestionSetsForAccount,
     getQuestionSetQuestions,
-    getRandomQuestion
+    getQuestionSetsForAccount,
+    getRandomQuestion,
+    sessionExists
 ) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -27,6 +29,7 @@ import Data.Text.Lazy (Text)
 import Formatting ((%) , fixed, format, fprint, int, shown, text)
 import Text.RawString.QQ
 import qualified Data.ByteString.Lazy as Data.ByteString.Lazy
+import qualified Data.Map.Lazy
 import qualified Data.Text.Encoding.Error
 import qualified Data.Text.Lazy as Data.Text.Lazy
 import qualified Data.Text.Lazy.Encoding as Data.Text.Lazy.Encoding
@@ -34,6 +37,11 @@ import qualified Data.UUID as Data.UUID
 import qualified Data.UUID.V4 as Data.UUID.V4
 import qualified Database.HDBC as HDBC
 import qualified Database.HDBC.PostgreSQL as PSQL
+
+data Account = Account { aId :: Text
+                       , aEmails :: [AccountEmail]
+                       , aCreatedAt :: Text
+                       , aModifiedAt :: Text }
 
 data AccountEmail = AccountEmail { aeId :: Text
                                  , aeEmail :: Text
@@ -325,6 +333,67 @@ getAccountEmails accId = do
                              , aeEmail = HDBC.fromSql email
                              , aeCreatedAt = HDBC.fromSql createdAt
                              , aeModifiedAt = HDBC.fromSql modifiedAt }
+
+getAccountsByEmail :: (HasDbConn m) => Text -> m [Account]
+getAccountsByEmail email = do
+    -- Select all accounts linked to this email, then select all emails connected
+    -- to those accounts.
+    let sql = [r|
+                select
+                    account.id,
+                    account.created_at,
+                    account.modified_at,
+                    account_email.id,
+                    account_email.email,
+                    account_email.created_at,
+                    account_email.modified_at
+                from
+                    account
+                    join account_email on (account_email.account = account.id)
+                where
+                    account.id in (
+                        select account_email.account
+                        from account_email
+                        where account_email.email = ?
+                    )
+            |]
+    let params = [ HDBC.toSql email ]
+    withConnection $ \conn -> do
+        rows <- liftIO $ HDBC.quickQuery conn sql params
+        let accountsWithEmails = foldRows Data.Map.Lazy.empty rows
+        pure $ Data.Map.Lazy.elems accountsWithEmails
+    where
+        foldRows accMap rows = case rows of
+            [] -> accMap
+            row:rest -> case row of
+                [ sqlAccId
+                    , sqlAccCreatedAt
+                    , sqlAccModifiedAt
+                    , sqlAccEmailId
+                    , sqlAccEmailEmail
+                    , sqlAccEmailCreatedAt
+                    , sqlAccEmailModifiedAt ] -> do
+                    let accId = HDBC.fromSql sqlAccId
+                    let accCreatedAt = HDBC.fromSql sqlAccCreatedAt
+                    let accModifiedAt = HDBC.fromSql sqlAccModifiedAt
+                    let accEmailId = HDBC.fromSql sqlAccEmailId
+                    let accEmailEmail = HDBC.fromSql sqlAccEmailEmail
+                    let accEmailCreatedAt = HDBC.fromSql sqlAccEmailCreatedAt
+                    let accEmailModifiedAt = HDBC.fromSql sqlAccEmailModifiedAt
+                    let accountEmail = AccountEmail { aeId = accEmailId
+                                                    , aeEmail = accEmailEmail
+                                                    , aeCreatedAt = accEmailCreatedAt
+                                                    , aeModifiedAt = accEmailModifiedAt }
+                    let account = case Data.Map.Lazy.lookup accId accMap of
+                            Nothing -> Account { aId = accId
+                                               , aCreatedAt = accCreatedAt
+                                               , aModifiedAt = accModifiedAt
+                                               , aEmails = [] }
+                            Just a -> a
+                    let newAccount = account { aEmails = accountEmail : aEmails account }
+                    let newAccMap = Data.Map.Lazy.insert accId newAccount accMap
+                    foldRows newAccMap rest
+
 
 getQuestionSet :: (HasDbConn m, MonadIO m) => Text -> Text -> m QuestionSet
 getQuestionSet owner id = do
