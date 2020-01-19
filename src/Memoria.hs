@@ -35,6 +35,7 @@ import qualified Web.Scotty.Trans as ST
 
 import Memoria.Common (HasParams(getParam), HasRedirects, HasRequestMethod, getRequestMethod)
 import Memoria.Cookies (HasCookies(getCookie, setCookie))
+import Memoria.Page.Auth (handleAuth)
 import Memoria.Page.CreateAccount (handleCreateAccount)
 import Memoria.Page.CreateQuestion (handleCreateQuestion)
 import Memoria.Page.CreateQuestionSet (handleCreateQuestionSet)
@@ -206,6 +207,7 @@ instance Memoria.Common.HasAccounts (ST.ActionT Text StateM)
 application :: ST.ScottyT Text StateM ()
 application = do
     ST.get "/" $ withSetCookies handleIndex >>= ST.html
+    ST.get "/auth" $ withSetCookies handleAuth >>= ST.html
     ST.get "/create-account" $ withSetCookies handleCreateAccount >>= ST.html
     ST.get "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.get "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html

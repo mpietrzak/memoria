@@ -45,6 +45,7 @@ library
                  , Memoria.Conf
                  , Memoria.Cookies
                  , Memoria.Db
+                 , Memoria.Page.Auth
                  , Memoria.Page.CreateAccount
                  , Memoria.Page.CreateQuestion
                  , Memoria.Page.CreateQuestionSet

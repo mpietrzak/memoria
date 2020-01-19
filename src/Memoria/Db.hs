@@ -16,6 +16,7 @@ module Memoria.Db (
     createQuestionSet,
     ensureCsrfToken,
     getAccountEmails,
+    getAccountIdByToken,
     getAccountsByEmail,
     getQuestionSet,
     getQuestionSetQuestions,
@@ -345,6 +346,24 @@ destroyConnection :: PSQL.Connection -> IO ()
 destroyConnection conn = do
     HDBC.disconnect conn
     fprint "destroyConnection: Closed connection\n"
+
+getAccountIdByToken :: HasDbConn m => Text -> m (Maybe Text)
+getAccountIdByToken token = do
+    withConnection $ \conn -> do
+        let params = [ HDBC.toSql token ]
+        rows <- liftIO $ HDBC.quickQuery conn sql params
+        case rows of
+            [row] -> case row of
+                [sqlAccId] -> pure $ Just $ HDBC.fromSql sqlAccId
+                _ -> error "Invalid number of columns"
+            _ -> pure $ Nothing
+    where
+        sql = [r|
+                select account
+                from login_token
+                where token = ?
+                    and expires_at >= current_timestamp
+            |]
 
 getAccountEmails :: (HasDbConn m) => Text -> m [AccountEmail]
 getAccountEmails accId = do
