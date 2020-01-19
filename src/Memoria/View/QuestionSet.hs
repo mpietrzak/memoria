@@ -34,25 +34,21 @@ renderQuestionSet dbSize questionSet questions = do
                 H.toHtml $ name questionSet
             H.div $ do
                 "["
-                H.a ! A.href addQuestionHref $ do
-                    "add question"
+                H.a ! A.href addQuestionHref $ "add question"
                 "]"
             H.table $ do
-                H.thead $ do
-                    H.tr $ do
-                        H.th "id"
-                        H.th "question"
-                        H.th "answer"
-                        H.th "created"
-                        H.th "modified"
-                H.tbody $ do
-                    for_ questions $ \q -> do
-                        H.tr $ do
-                            H.td $ H.toHtml (qId q)
-                            H.td $ H.toHtml (qQuestion q)
-                            H.td $ H.toHtml (qAnswer q)
-                            H.td $ H.toHtml (qCreatedAt q)
-                            H.td $ H.toHtml (qModifiedAt q)
+                H.thead $ H.tr $ do
+                    H.th "id"
+                    H.th "question"
+                    H.th "answer"
+                    H.th "created"
+                    H.th "modified"
+                H.tbody $ for_ questions $ \q -> H.tr $ do
+                    H.td $ H.toHtml (qId q)
+                    H.td $ H.toHtml (qQuestion q)
+                    H.td $ H.toHtml (qAnswer q)
+                    H.td $ H.toHtml (qCreatedAt q)
+                    H.td $ H.toHtml (qModifiedAt q)
     Memoria.View.Base.render content footer
     where
-        addQuestionHref = H.toValue $ "create-question?question-set=" <> (id questionSet)
+        addQuestionHref = H.toValue $ "create-question?question-set=" <> id questionSet

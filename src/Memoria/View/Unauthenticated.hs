@@ -9,7 +9,7 @@ import Text.Blaze.XHtml1.Strict ((!))
 import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
-import qualified Memoria.View.Base as Memoria.View.Base
+import qualified Memoria.View.Base
 
 renderUnauthenticated :: Integer -> Text
 renderUnauthenticated dbSize = do
