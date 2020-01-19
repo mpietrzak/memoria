@@ -8,6 +8,7 @@ module Memoria.Db (
     AccountEmail(..),
     QuestionSet(..),
     Question(..),
+    addEmail,
     addQuestion,
     createDbPool,
     createQuestionSet,
@@ -202,6 +203,31 @@ class HasDbConn m => HasDb m where
             liftIO $ HDBC.commit conn
         liftIO $ fprint ("Db.setSessionValue: Session value saved in DB\n")
         pure ()
+
+addEmail :: (HasDbConn m, MonadIO m) => Text -> Text -> m ()
+addEmail accId email = do
+    emailId <- newId
+    withConnection $ \conn -> do
+        let sql = [r|
+                    insert into account_email (
+                        id,
+                        account,
+                        email,
+                        created_at,
+                        modified_at
+                    ) values (
+                        ?,
+                        ?,
+                        ?,
+                        current_timestamp,
+                        current_timestamp
+                    )
+                |]
+        let params = [ HDBC.toSql emailId
+                     , HDBC.toSql accId
+                     , HDBC.toSql email ]
+        liftIO $ HDBC.run conn sql params
+        liftIO $ HDBC.commit conn
 
 addQuestion :: (HasDbConn m, MonadIO m) => Text -> Text -> (Text, Text) -> m Text
 addQuestion accId questionSetId (question, answer) = do

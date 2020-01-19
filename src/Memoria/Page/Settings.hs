@@ -51,11 +51,14 @@ handleSettings = do
                                                   , V.aeCreatedAt = DB.aeCreatedAt dbEmail
                                                   , V.aeModifiedAt = DB.aeModifiedAt dbEmail }
 
-handleSettingsAddEmail :: (Monad m, DB.HasDb m, Memoria.Common.HasParams m, Memoria.Common.HasRequestMethod m) => m Text
+handleSettingsAddEmail :: (Monad m, DB.HasDb m, Memoria.Common.HasAccounts m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m, Memoria.Common.HasRequestMethod m) => m Text
 handleSettingsAddEmail = do
     dbSize <- DB.getDbSize >>= \m -> case m of
         Right s -> pure s
         Left _ -> error "Error getting db size"
+    accId <- Memoria.Common.getAccountId >>= \m -> case m of
+        Just accId -> pure accId
+        Nothing -> error "No account id"
     let fields = [
                 (
                     "email",
@@ -75,7 +78,12 @@ handleSettingsAddEmail = do
             case isFormValid of
                 False -> pure $ V.renderSettingsAddEmail dbSize formData
                 True -> do
-                    error "TODO: add in DB"
+                    case V.aefEmail formData of
+                        Nothing -> error "Email missing in valid form data"
+                        Just e -> do
+                            DB.addEmail accId e
+                            Memoria.Common.redirect "settings"
+                            pure ""
     where
         processFormData fields = processFormDataGo True def fields
         processFormDataGo isFormValid formData fields = case fields of
