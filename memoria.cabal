@@ -20,13 +20,16 @@ library
                  , formatting >= 6.3.7
                  , http-types >= 0.12.3
                  , monad-control >= 1.0.2.3
+                 , mime-mail >= 0.5
                  , mtl >= 2.2.2
+                 , network >= 3
                  , random >= 1.1
                  , raw-strings-qq >= 1
                  , resource-pool >= 0.2
                  , scientific >= 0.3.6.2
                  , scotty >= 0.11.5
                  , scotty-cookie >= 0.1
+                 , smtp-mail >= 0.2
                  , text >= 1.2.3
                  , time >= 1.6
                  , tomland >= 1
