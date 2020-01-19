@@ -37,28 +37,28 @@ css = [r|
     |]
 
 footer :: Integer -> H.Html
-footer dbSize = do
-    H.div ! A.class_ "footer" $ do
-        H.p $ do
-            "Database size: "
-            H.toHtml $ humanByteSize dbSize
+footer dbSize = H.div ! A.class_ "footer" $ H.p $ do
+    "Database size: "
+    H.toHtml $ humanByteSize dbSize
 
 menu :: H.Html
-menu = do
-    H.div ! A.class_ "menu" $ do
-        menuItem "/" "index"
-        menuItem "create-question-set" "create question set"
-        menuItem "test" "test"
-        menuItem "settings" "settings"
+menu = H.div ! A.class_ "menu" $ do
+    menuItem "/" "index"
+    menuItem "create-question-set" "create question set"
+    menuItem "test" "test"
+    menuItem "settings" "settings"
+    menuItem "logout" "logout"
     where
-        menuItem href linkText = do
-            H.div ! A.class_ "menu-item" $ do
-                "["
-                H.a
-                    ! A.href href
-                    $ linkText
-                "]"
+        menuItem href linkText = H.div ! A.class_ "menu-item" $ do
+            "["
+            H.a
+                ! A.href href
+                $ linkText
+            "]"
 
+-- This is a most common render and should accept things that are unique to
+-- each of the most common page.
+-- TODO: menu is common to most common pages, so it should be handled here.
 render :: H.Html -> H.Html -> Text
 render content footer = renderMarkup $ H.docTypeHtml $ do
     H.head $ do
@@ -68,6 +68,5 @@ render content footer = renderMarkup $ H.docTypeHtml $ do
             ! A.content "width=device-width, initial-scale=1"
         H.style $ H.toHtml css
     H.body $ do
-        H.div ! A.class_ "content" $ do
-            content
+        H.div ! A.class_ "content" $ content
         footer

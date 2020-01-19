@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Memoria.Page.Settings (
@@ -19,7 +20,7 @@ validateEmail val = case val of
     Nothing -> Left "Email is required"
     Just _v -> case Data.Text.Lazy.strip _v of
         "" -> Left "Email is required"
-        _v -> case Data.Text.Lazy.find (\c -> c == '@') _v of
+        _v -> case Data.Text.Lazy.find (== '@') _v of
             Nothing -> Left "Email must have a @ in it"
             Just _ -> Right (Just _v)
 
@@ -31,15 +32,15 @@ processField fieldName validator fieldSetter errSetter formData = do
         mval
     let validationResult = validator mval
     case validationResult of
-        Left err -> pure $ (False, fieldSetter mval $ errSetter err formData)
-        Right val -> pure $ (True, fieldSetter val formData)
+        Left err -> pure (False, fieldSetter mval $ errSetter err formData)
+        Right val -> pure (True, fieldSetter val formData)
 
 handleSettings :: (Monad m, DB.HasDb m, Memoria.Common.HasAccounts m) => m Text
 handleSettings = do
-    accId <- Memoria.Common.getAccountId >>= \m -> case m of
+    accId <- Memoria.Common.getAccountId >>= \case
         Just accId -> pure accId
         Nothing -> error "No account id"
-    dbSize <- DB.getDbSize >>= \m -> case m of
+    dbSize <- DB.getDbSize >>= \case
         Right s -> pure s
         Left _ -> error "Error getting db size"
     dbAccEmails <- DB.getAccountEmails accId
@@ -53,10 +54,10 @@ handleSettings = do
 
 handleSettingsAddEmail :: (Monad m, DB.HasDb m, Memoria.Common.HasAccounts m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m, Memoria.Common.HasRequestMethod m) => m Text
 handleSettingsAddEmail = do
-    dbSize <- DB.getDbSize >>= \m -> case m of
+    dbSize <- DB.getDbSize >>= \case
         Right s -> pure s
         Left _ -> error "Error getting db size"
-    accId <- Memoria.Common.getAccountId >>= \m -> case m of
+    accId <- Memoria.Common.getAccountId >>= \case
         Just accId -> pure accId
         Nothing -> error "No account id"
     let fields = [
@@ -75,17 +76,17 @@ handleSettingsAddEmail = do
             liftIO $ fprint
                 ("handleSettingsAddEmail: formData: " % shown % "\n")
                 formData
-            case isFormValid of
-                False -> pure $ V.renderSettingsAddEmail dbSize formData
-                True -> do
-                    case V.aefEmail formData of
-                        Nothing -> error "Email missing in valid form data"
-                        Just e -> do
-                            DB.addEmail accId e
-                            Memoria.Common.redirect "settings"
-                            pure ""
+            if isFormValid then
+               (case V.aefEmail formData of
+                    Nothing -> error "Email missing in valid form data"
+                    Just e -> do
+                        DB.addEmail accId e
+                        Memoria.Common.redirect "settings"
+                        pure "")
+            else
+                pure $ V.renderSettingsAddEmail dbSize formData
     where
-        processFormData fields = processFormDataGo True def fields
+        processFormData = processFormDataGo True def
         processFormDataGo isFormValid formData fields = case fields of
             (f:fs) -> do
                 let (name, validator, fieldSetter, errSetter) = f

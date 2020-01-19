@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 
 module Memoria.Page.Test (
     handleTest
@@ -11,12 +12,12 @@ import qualified Memoria.View.Test as V
 
 handleTest :: (Memoria.Common.HasAccounts m, Memoria.Common.HasParams m, DB.HasDbConn m) => m Text
 handleTest = do
-    accId <- Memoria.Common.getAccountId >>= \m -> case m of
+    accId <- Memoria.Common.getAccountId >>= \case
         Just accId -> pure accId
         Nothing -> error "No account id"
     question <- DB.getRandomQuestion accId
     let viewQuestion = questionDbToView question
-    dbSize <- DB.getDbSize >>= \m -> case m of
+    dbSize <- DB.getDbSize >>= \case
         Right s -> pure s
         Left _ -> error "Error getting db size"
     pure $ V.renderTest dbSize viewQuestion
