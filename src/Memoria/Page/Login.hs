@@ -63,7 +63,7 @@ handleLogin = do
             "Memoria login"
             [Network.Mail.Mime.plainPart body]
         makeEmailText accounts tokens =
-            "Click a link to login to login:\n"
+            "Click a link to login:\n"
             <> "\n"
             <> (Data.Text.Lazy.concat $ map (\l -> l <> "\n") $ map (makeLoginLink tokens) accounts)
             <> "\n"
