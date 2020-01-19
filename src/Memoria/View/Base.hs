@@ -63,6 +63,9 @@ render :: H.Html -> H.Html -> Text
 render content footer = renderMarkup $ H.docTypeHtml $ do
     H.head $ do
         H.title $ H.toHtml ("test" :: Text)
+        H.meta
+            ! A.name "viewport"
+            ! A.content "width=device-width, initial-scale=1"
         H.style $ H.toHtml css
     H.body $ do
         H.div ! A.class_ "content" $ do
