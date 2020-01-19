@@ -35,43 +35,37 @@ renderCreateQuestion dbSize questionSetId csrfToken formData = do
     let content = H.div $ do
             Memoria.View.Base.menu
             H.p "Adding question"
-            H.form ! A.method "post" $ do
-                H.table $ do
-                    H.tr $ do
-                        H.td "Question:"
-                        H.td $ do
-                            H.input
-                                ! A.name "question"
-                                ! A.type_ "text"
-                                !?? case (question formData) of
-                                        Nothing -> Nothing
-                                        Just val -> Just $ A.value $ H.toValue val
-                        errTd $ questionErr formData
-                    H.tr $ do
-                        H.td "Answer:"
-                        H.td $ do
-                            H.input
-                                ! A.name "answer"
-                                ! A.type_ "text"
-                                !?? case (answer formData) of
-                                        Nothing -> Nothing
-                                        Just val -> Just $ A.value $ H.toValue val
-                        errTd $ answerErr formData
-                    H.tr $ do
-                        H.td ! A.align "right" ! A.colspan "2" $ do
-                            H.input
-                                ! A.name "csrf-token"
-                                ! A.type_ "hidden"
-                                ! (A.value (H.toValue csrfToken))
-                            H.input
-                                ! A.type_ "hidden"
-                                ! A.name "question-set"
-                                ! (A.value (H.toValue questionSetId))
-                            H.button ! A.type_ "submit" $ do
-                                "Ok"
+            H.form ! A.method "post" $ H.table $ do
+                H.tr $ do
+                    H.td "Question:"
+                    H.td $ H.input
+                        ! A.name "question"
+                        ! A.type_ "text"
+                        !?? case question formData of
+                                Nothing -> Nothing
+                                Just val -> Just $ A.value $ H.toValue val
+                    errTd $ questionErr formData
+                H.tr $ do
+                    H.td "Answer:"
+                    H.td $ H.input
+                        ! A.name "answer"
+                        ! A.type_ "text"
+                        !?? case answer formData of
+                                Nothing -> Nothing
+                                Just val -> Just $ A.value $ H.toValue val
+                    errTd $ answerErr formData
+                H.tr $ H.td ! A.align "right" ! A.colspan "2" $ do
+                    H.input
+                        ! A.name "csrf-token"
+                        ! A.type_ "hidden"
+                        ! A.value (H.toValue csrfToken)
+                    H.input
+                        ! A.type_ "hidden"
+                        ! A.name "question-set"
+                        ! A.value (H.toValue questionSetId)
+                    H.button ! A.type_ "submit" $ "Ok"
     Memoria.View.Base.render content footer
     where
         errTd me = case me of
             Nothing -> ""
-            Just e -> H.td ! A.class_ "error" $ do
-                H.toHtml e
+            Just e -> H.td ! A.class_ "error" $ H.toHtml e

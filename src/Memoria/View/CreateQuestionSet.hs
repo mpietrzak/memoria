@@ -26,19 +26,18 @@ renderCreateQuestionSet dbSize formData = do
     let footer = Memoria.View.Base.footer dbSize
     let content = H.div $ do
             Memoria.View.Base.menu
-            H.div $ do
-                H.form ! A.method "post" $ do
-                    H.table $ do
-                        H.tbody $ do
-                            H.tr $ do
-                                H.td $ do
-                                    H.label "Name:"
-                                H.td $ do
-                                    H.input
-                                        ! A.name "name"
-                                        ! A.value (H.toValue (qsfdName formData))
-                            H.tr $ do
-                                H.td ! A.colspan "2" ! A.align "right" $ do
-                                    H.button "Create"
+            H.div
+                $ H.form ! A.method "post"
+                $ H.table
+                $ H.tbody
+                $ do
+                    H.tr $ do
+                        H.td $ H.label "Name:"
+                        H.td $ H.input
+                            ! A.name "name"
+                            ! A.value (H.toValue (qsfdName formData))
+                    H.tr
+                        $ H.td ! A.colspan "2" ! A.align "right"
+                        $ H.button "Create"
     Memoria.View.Base.render content footer
 

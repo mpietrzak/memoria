@@ -21,11 +21,10 @@ renderIndex dbSize questionSets = do
     let foot = Memoria.View.Base.footer dbSize
     let content = H.div ! A.class_ "content" $ do
             Memoria.View.Base.menu
-            H.ul $ do
-                for_ questionSets $ \questionSet -> do
-                    H.li $ do
-                        H.a ! A.href (questionSetLink (id questionSet)) $ do
-                            H.toHtml $ name questionSet
+            H.ul $ for_ questionSets $ \questionSet -> H.li
+                $ H.a ! A.href (questionSetLink (id questionSet))
+                $ H.toHtml
+                $ name questionSet
     Memoria.View.Base.render content foot
     where
         questionSetLink _id = H.toValue $ "question-set?id=" <> _id
