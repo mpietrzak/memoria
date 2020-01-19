@@ -76,3 +76,18 @@ create index account_email_email_i on account_email (email);
 create index account_email_created_i on account_email (created_at);
 create index account_email_modified_i on account_email (modified_at);
 
+
+create table login_token (
+    id varchar(128) not null primary key,
+    token varchar(128) not null,
+    account varchar(128) not null references account,
+    expires_at timestamp not null,
+    created_at timestamp not null,
+    modified_at timestamp not null
+);
+
+create unique index login_token_token_ui on login_token (token);
+create index login_token_acc_id on login_token (account);
+create index login_token_created_i on login_token (created_at);
+create index login_token_modified_i on login_token (modified_at);
+

@@ -10,6 +10,7 @@ module Memoria.Db (
     QuestionSet(..),
     Question(..),
     addEmail,
+    addLoginToken,
     addQuestion,
     createDbPool,
     createQuestionSet,
@@ -236,6 +237,37 @@ addEmail accId email = do
                      , HDBC.toSql email ]
         liftIO $ HDBC.run conn sql params
         liftIO $ HDBC.commit conn
+
+addLoginToken :: (HasDbConn m, MonadIO m) => Text -> m Text
+addLoginToken accId = do
+    newLoginToken <- liftIO $ Data.UUID.V4.nextRandom
+        >>= \uuid -> pure $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
+    newLoginTokenId <- newId
+    withConnection $ \conn -> do
+        let params = [ HDBC.toSql newLoginTokenId
+                     , HDBC.toSql newLoginToken
+                     , HDBC.toSql accId ]
+        liftIO $ HDBC.run conn sql params
+        liftIO $ HDBC.commit conn
+        pure newLoginToken
+    where
+        sql = [r|
+                insert into login_token (
+                    id,
+                    token,
+                    account,
+                    expires_at,
+                    created_at,
+                    modified_at
+                ) values (
+                    ?,
+                    ?,
+                    ?,
+                    current_timestamp + interval '7 days',
+                    current_timestamp,
+                    current_timestamp
+                )
+            |]
 
 addQuestion :: (HasDbConn m, MonadIO m) => Text -> Text -> (Text, Text) -> m Text
 addQuestion accId questionSetId (question, answer) = do
