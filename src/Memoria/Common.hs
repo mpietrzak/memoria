@@ -16,10 +16,7 @@ import Data.Text.Lazy (Text)
 import Formatting ((%), format, fixed, text)
 import qualified Network.HTTP.Types.Method
 
-import Memoria.Sessions (HasSessions, getSessionValue)
-
-sessionAccountIdKey :: Text
-sessionAccountIdKey = "account_id"
+import Memoria.Sessions (HasSessions, getSessionValue, sessionAccountIdName)
 
 class HasCsrfToken m where
     checkCsrfToken :: Text -> m ()
@@ -38,11 +35,11 @@ class HasSessions m => HasAccounts m
     where
         getAccountId :: m (Maybe Text)
         getAccountId = do
-            mAccountId <- getSessionValue sessionAccountIdKey
+            mAccountId <- getSessionValue sessionAccountIdName
             pure $ mAccountId
         hasAccount :: m Bool
         hasAccount = do
-            mAccountId <- getSessionValue sessionAccountIdKey
+            mAccountId <- getSessionValue sessionAccountIdName
             case mAccountId of
               Nothing -> pure False
               Just _ -> pure True

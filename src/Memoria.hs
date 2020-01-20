@@ -41,16 +41,16 @@ import Memoria.Page.CreateQuestion (handleCreateQuestion)
 import Memoria.Page.CreateQuestionSet (handleCreateQuestionSet)
 import Memoria.Page.Index (handleIndex)
 import Memoria.Page.Login (handleLogin)
+import Memoria.Page.Logout (handleLogout)
 import Memoria.Page.QuestionSet (handleQuestionSet)
 import Memoria.Page.Settings (handleSettings)
 import Memoria.Page.Settings (handleSettingsAddEmail)
 import Memoria.Page.Test (handleTest)
-import Memoria.Sessions ( HasSessions, createSession, generateRandomSessionKey, getSessionValue, ensureSession, setSessionValue)
+import Memoria.Sessions (HasSessions, createSession, deleteSessionValue, generateRandomSessionKey, getSessionValue, ensureSession, setSessionValue, sessionIdCookieName)
 import qualified Memoria.Common as Memoria.Common
 import qualified Memoria.Conf as Memoria.Conf
 import qualified Memoria.Db as Memoria.Db
 
-sessionCookieName = "session_id" :: Text
 
 data State = State { stateCookies :: Maybe (Data.Map.Lazy.Map Text Text)
                    , stateDbPool :: Pool PSQL.Connection }
@@ -148,12 +148,14 @@ instance HasSessions (ST.ActionT Text StateM) where
         sessionKey <- generateRandomSessionKey
         Memoria.Db.createSession sessionKey
         pure sessionKey
+    deleteSessionValue name = do
+        sessionKey <- ensureSession
+        Memoria.Db.deleteSessionValue sessionKey name
     generateRandomSessionKey = do
         uuid <- liftIO $ Data.UUID.V4.nextRandom
         return $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
     getSessionValue name = do
-        let sessionCookieName = "session_id"
-        mSessionKey <- getCookie sessionCookieName
+        mSessionKey <- getCookie sessionIdCookieName
         liftIO $ fprint ("getSessionValue: mSessionKey: " % shown % "\n") mSessionKey
         case mSessionKey of
           Nothing -> pure Nothing
@@ -167,13 +169,13 @@ instance HasSessions (ST.ActionT Text StateM) where
         pure ()
     ensureSession = do
         -- Check if cookie session is ok, create a new one if needed.
-        mCookieSessionKey <- getCookie sessionCookieName
+        mCookieSessionKey <- getCookie sessionIdCookieName
         case mCookieSessionKey of
           Nothing -> do
               -- No session cookie at all, just generate new
               sessionKey <- generateRandomSessionKey
               Memoria.Db.createSession sessionKey
-              setCookie sessionCookieName sessionKey
+              setCookie sessionIdCookieName sessionKey
               pure sessionKey
           Just cookieSessionKey -> do
               -- Session cookie found, but might be broken
@@ -188,7 +190,7 @@ instance HasSessions (ST.ActionT Text StateM) where
                     pure cookieSessionKey
                 False -> do
                     key <- createSession
-                    setCookie sessionCookieName key
+                    setCookie sessionIdCookieName key
                     pure key
 
 
@@ -212,6 +214,8 @@ application = do
     ST.get "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.get "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
     ST.get "/login" $ withSetCookies handleLogin >>= ST.html
+    -- TODO: GET on logout should not logout
+    ST.get "/logout" $ withSetCookies handleLogout >>= ST.html
     ST.get "/question-set" $ withSetCookies handleQuestionSet >>= ST.html
     ST.get "/settings" $ withSetCookies handleSettings >>= ST.html
     ST.get "/settings-add-email" $ withSetCookies handleSettingsAddEmail >>= ST.html

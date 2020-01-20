@@ -14,6 +14,7 @@ module Memoria.Db (
     addQuestion,
     createDbPool,
     createQuestionSet,
+    deleteSessionValue,
     ensureCsrfToken,
     getAccountEmails,
     getAccountIdByToken,
@@ -178,11 +179,6 @@ class HasDbConn m => HasDb m where
                 _ -> pure Nothing
               _ -> pure Nothing
     setSessionValue sessionKey name value = do
-        liftIO $ fprint
-            ("Db.setSessionValue: About to insert value (" % text % ", " % text % " to session " % text % "\n")
-            name
-            value
-            sessionKey
         id <- newId
         let sql = [r|
                 insert into session_value (
@@ -548,6 +544,20 @@ getRandomQuestion accId = do
                     )
                 order by id
                 limit 1
+            |]
+
+deleteSessionValue :: HasDbConn m => Text -> Text -> m ()
+deleteSessionValue sessionKey name = do
+    withConnection $ \conn -> do
+        let params = [ HDBC.toSql sessionKey, HDBC.toSql name ]
+        liftIO $ HDBC.run conn sql params
+        liftIO $ HDBC.commit conn
+    where
+        sql = [r|
+                delete from session_value
+                where
+                    session = (select id from session where key = ?)
+                    and name = ?
             |]
 
 ensureCsrfToken :: HasDbConn m => Text -> m Text
