@@ -2,11 +2,12 @@
 
 module Memoria.View.Test (
     Question(..),
-    renderTest
+    renderTest,
+    renderTestAnswer
 ) where
 
 import Data.Text.Lazy (Text)
-import Text.Blaze.XHtml1.Strict ((!), (!?))
+import Text.Blaze.XHtml1.Strict ((!))
 import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
@@ -27,12 +28,24 @@ renderTest dbSize question = do
                 H.p $ do
                     "Question: "
                     H.toHtml (qQuestion question)
-                H.form ! A.method "post" $ do
-                    H.input
-                        ! A.name "answer"
-                        ! A.type_ "text"
-                    H.button
-                        ! A.type_ "submit"
-                        $ "Ok"
+                H.form
+                    ! A.action "answer"
+                    ! A.method "post"
+                    $ do
+                        H.input ! A.name "answer" ! A.type_ "text"
+                        H.input
+                            ! A.name "question"
+                            ! A.type_ "hidden"
+                            ! A.value (H.toValue (qId question))
+                        H.button ! A.type_ "submit" $ "Ok"
+    Memoria.View.Base.render content footer
+
+renderTestAnswer :: Integer -> (Text, Text) -> Question -> Bool -> Text
+renderTestAnswer dbSize (answerId, answer) question isCorrect = do
+    let footer = Memoria.View.Base.footer dbSize
+    let content = H.div $ do
+            Memoria.View.Base.menu
+            H.div $ do
+                H.p "Answer..."
     Memoria.View.Base.render content footer
 

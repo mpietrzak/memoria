@@ -91,3 +91,19 @@ create index login_token_acc_id on login_token (account);
 create index login_token_created_i on login_token (created_at);
 create index login_token_modified_i on login_token (modified_at);
 
+
+create table question_answer (
+    id varchar(128) not null primary key,
+    account varchar(128) not null references account,
+    question varchar(128) not null references question,
+    answer varchar(1024) not null,
+    is_correct boolean not null,
+    created_at timestamp not null,
+    modified_at timestamp not null
+);
+
+create index question_answer_account_i on question_answer (account);
+create index question_answer_question_i on question_answer (question);
+create index question_answer_created_i on question_answer (created_at);
+create index question_answer_modified_i on question_answer (modified_at);
+

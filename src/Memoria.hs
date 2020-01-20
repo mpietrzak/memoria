@@ -46,6 +46,7 @@ import Memoria.Page.QuestionSet (handleQuestionSet)
 import Memoria.Page.Settings (handleSettings)
 import Memoria.Page.Settings (handleSettingsAddEmail)
 import Memoria.Page.Test (handleTest)
+import Memoria.Page.Test (handleTestAnswer)
 import Memoria.Sessions (HasSessions, createSession, deleteSessionValue, generateRandomSessionKey, getSessionValue, ensureSession, setSessionValue, sessionIdCookieName)
 import qualified Memoria.Common as Memoria.Common
 import qualified Memoria.Conf as Memoria.Conf
@@ -220,6 +221,7 @@ application = do
     ST.get "/settings" $ withSetCookies handleSettings >>= ST.html
     ST.get "/settings-add-email" $ withSetCookies handleSettingsAddEmail >>= ST.html
     ST.get "/test" $ withSetCookies handleTest >>= ST.html
+    ST.post "/answer" $ withSetCookies handleTestAnswer >>= ST.html
     ST.post "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.post "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
     ST.post "/login" $ withSetCookies handleLogin >>= ST.html

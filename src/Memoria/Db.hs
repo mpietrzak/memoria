@@ -12,6 +12,7 @@ module Memoria.Db (
     addEmail,
     addLoginToken,
     addQuestion,
+    addQuestionAnswer,
     createDbPool,
     createQuestionSet,
     deleteSessionValue,
@@ -19,6 +20,7 @@ module Memoria.Db (
     getAccountEmails,
     getAccountIdByToken,
     getAccountsByEmail,
+    getQuestionById,
     getQuestionSet,
     getQuestionSetQuestions,
     getQuestionSetsForAccount,
@@ -303,6 +305,39 @@ addQuestion accId questionSetId (question, answer) = do
         liftIO $ HDBC.commit conn
         pure questionId
 
+addQuestionAnswer :: (HasDbConn m, MonadIO m) => Text -> Text -> Text -> Bool -> m Text
+addQuestionAnswer accId questionId answer isCorrect = do
+    qaId <- newId
+    withConnection $ \conn -> do
+        let params = [ HDBC.toSql qaId
+                     , HDBC.toSql accId
+                     , HDBC.toSql questionId
+                     , HDBC.toSql answer
+                     , HDBC.toSql isCorrect ]
+        liftIO $ HDBC.run conn sql params
+        liftIO $ HDBC.commit conn
+    pure qaId
+    where
+        sql = [r|
+                insert into question_answer (
+                    id,
+                    account,
+                    question,
+                    answer,
+                    is_correct,
+                    created_at,
+                    modified_at
+                ) values (
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    current_timestamp,
+                    current_timestamp
+                )
+            |]
+
 createConnection :: Text -> Int -> Text -> Text -> Text -> IO (PSQL.Connection)
 createConnection host port db user pass = do
     conn <- PSQL.connectPostgreSQL connstr
@@ -440,6 +475,36 @@ getAccountsByEmail email = do
                     let newAccount = account { aEmails = accountEmail : aEmails account }
                     let newAccMap = Data.Map.Lazy.insert accId newAccount accMap
                     foldRows newAccMap rest
+
+
+getQuestionById :: (HasDbConn m, MonadIO m) => Text -> m Question
+getQuestionById questionId = do
+    withConnection $ \conn -> do
+        rows <- liftIO $ HDBC.quickQuery conn sql params
+        case rows of
+            [row] -> case row of
+                [id, question, answer, createdAt, modifiedAt] ->
+                    pure $ Question { qId = HDBC.fromSql id
+                                    , qQuestion = HDBC.fromSql question
+                                    , qAnswer = HDBC.fromSql answer
+                                    , qCreatedAt = HDBC.fromSql createdAt
+                                    , qModifiedAt = HDBC.fromSql modifiedAt }
+                _ -> error "Invalid column count"
+            _ -> error "Invalid number of rows"
+    where
+        params = [HDBC.toSql questionId]
+        sql = [r|
+                select
+                    id,
+                    question,
+                    answer,
+                    created_at,
+                    modified_at
+                from
+                    question
+                where
+                    id = ?
+            |]
 
 
 getQuestionSet :: (HasDbConn m, MonadIO m) => Text -> Text -> m QuestionSet
