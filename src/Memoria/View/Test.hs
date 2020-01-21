@@ -46,6 +46,26 @@ renderTestAnswer dbSize (answerId, answer) question isCorrect = do
     let content = H.div $ do
             Memoria.View.Base.menu
             H.div $ do
-                H.p "Answer..."
+                if isCorrect
+                    then H.div $ do
+                        H.p "This is a correct answer, congrats!"
+                        H.p $ do
+                            "Question: "
+                            H.toHtml (qQuestion question)
+                        H.p $ do
+                            "Answer: "
+                            H.toHtml (qAnswer question)
+                    else H.div $ do
+                        H.p "This is not a correct answer, sorry..."
+                        H.div $ do
+                            H.p $ do
+                                "Incorrect grade? You can override the grade (TODO)"
+                            H.p $ do
+                                "Incorrect question? You can fix the question (TODO)"
+                H.div $ do
+                    "["
+                    H.a ! A.href "test" $ "Next question"
+                    "]"
+
     Memoria.View.Base.render content footer
 
