@@ -98,12 +98,16 @@ create table question_answer (
     question varchar(128) not null references question,
     answer varchar(1024) not null,
     is_correct boolean not null,
+    answered_at timestamp not null,
     created_at timestamp not null,
     modified_at timestamp not null
 );
 
 create index question_answer_account_i on question_answer (account);
 create index question_answer_question_i on question_answer (question);
+create index question_answer_answered_i on question_answer (answered_at);
 create index question_answer_created_i on question_answer (created_at);
 create index question_answer_modified_i on question_answer (modified_at);
+create index question_answer_qccount_question_answered_i
+on question_answer (account, question, answered_at);
 

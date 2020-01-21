@@ -43,11 +43,11 @@ footer dbSize = H.div ! A.class_ "footer" $ H.p $ do
 
 menu :: H.Html
 menu = H.div ! A.class_ "menu" $ do
-    menuItem "/" "index"
-    menuItem "create-question-set" "create question set"
-    menuItem "test" "test"
-    menuItem "settings" "settings"
-    menuItem "logout" "logout"
+    menuItem "/" "Index"
+    menuItem "create-question-set" "Create question set"
+    menuItem "test" "Test"
+    menuItem "settings" "Settings"
+    menuItem "logout" "Logout"
     where
         menuItem href linkText = H.div ! A.class_ "menu-item" $ do
             "["

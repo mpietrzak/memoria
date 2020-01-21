@@ -1,12 +1,14 @@
+{-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE DuplicateRecordFields #-}
 
 module Memoria.Db (
     HasDbConn(getConnection, withConnection),
     HasDb(createAccount, createSession, getDbSize, getSessionValue, setSessionValue),
     Account(..),
     AccountEmail(..),
+    Answer(..),
     QuestionSet(..),
     Question(..),
     addEmail,
@@ -20,6 +22,7 @@ module Memoria.Db (
     getAccountEmails,
     getAccountIdByToken,
     getAccountsByEmail,
+    getAnswers,
     getQuestionById,
     getQuestionSet,
     getQuestionSetQuestions,
@@ -52,6 +55,14 @@ data AccountEmail = AccountEmail { aeId :: Text
                                  , aeEmail :: Text
                                  , aeCreatedAt :: Text
                                  , aeModifiedAt :: Text }
+
+data Answer = Answer { ansId :: Text
+                     , ansQuestionId :: Text
+                     , ansAnswer :: Text
+                     , ansIsCorrect :: Bool
+                     , ansAnsweredAt :: Text
+                     , ansCreatedAt :: Text
+                     , ansModifiedAt :: Text }
 
 data QuestionSet = QuestionSet { id :: Text, name :: Text }
 
@@ -325,6 +336,7 @@ addQuestionAnswer accId questionId answer isCorrect = do
                     question,
                     answer,
                     is_correct,
+                    answered_at,
                     created_at,
                     modified_at
                 ) values (
@@ -333,6 +345,7 @@ addQuestionAnswer accId questionId answer isCorrect = do
                     ?,
                     ?,
                     ?,
+                    current_timestamp,
                     current_timestamp,
                     current_timestamp
                 )
@@ -476,7 +489,41 @@ getAccountsByEmail email = do
                     let newAccMap = Data.Map.Lazy.insert accId newAccount accMap
                     foldRows newAccMap rest
 
+getAnswers :: (HasDbConn m, MonadIO m) => Text -> Text -> m [Answer]
+getAnswers accId questionId = do
+    withConnection $ \conn -> do
+        let params = [ HDBC.toSql accId
+                     , HDBC.toSql questionId ]
+        rows <- liftIO $ HDBC.quickQuery conn sql params
+        pure $ map rowToAnswer rows
+    where
+        rowToAnswer = \case
+            [id, answer, isCorrect, answeredAt, createdAt, modifiedAt] ->
+                Answer { ansId = HDBC.fromSql id
+                       , ansAnswer = HDBC.fromSql answer
+                       , ansIsCorrect = HDBC.fromSql isCorrect
+                       , ansAnsweredAt = HDBC.fromSql answeredAt
+                       , ansCreatedAt = HDBC.fromSql createdAt
+                       , ansModifiedAt = HDBC.fromSql modifiedAt }
+            _ -> error "Invalid row"
+        sql = [r|
+                select
+                    id,
+                    answer,
+                    is_correct,
+                    answered_at,
+                    created_at,
+                    modified_at
+                from question_answer
+                where
+                    account = ?
+                    and question = ?
+                order by
+                    answered_at desc
+                limit 1000
+            |]
 
+-- TODO: We probably shouldn't error here.
 getQuestionById :: (HasDbConn m, MonadIO m) => Text -> m Question
 getQuestionById questionId = do
     withConnection $ \conn -> do
