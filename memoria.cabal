@@ -30,8 +30,10 @@ library
                  , scotty >= 0.11.5
                  , scotty-cookie >= 0.1
                  , smtp-mail >= 0.2
+                 , suspend >= 0.2
                  , text >= 1.2.3
                  , time >= 1.6
+                 , timers >= 0.2
                  , tomland >= 1
                  , transformers >= 0.5
                  , transformers-base >= 0.4
@@ -57,6 +59,7 @@ library
                  , Memoria.Page.Settings
                  , Memoria.Page.Test
                  , Memoria.Sessions
+                 , Memoria.Timers
                  , Memoria.View.Base
                  , Memoria.View.CreateQuestion
                  , Memoria.View.CreateQuestionSet

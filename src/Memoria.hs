@@ -52,7 +52,7 @@ import Memoria.Sessions (HasSessions, createSession, deleteSessionValue, generat
 import qualified Memoria.Common as Memoria.Common
 import qualified Memoria.Conf as Memoria.Conf
 import qualified Memoria.Db as Memoria.Db
-
+import qualified Memoria.Timers
 
 data State = State { stateCookies :: Maybe (Data.Map.Lazy.Map Text Text)
                    , stateDbPool :: Pool PSQL.Connection }
@@ -253,6 +253,7 @@ main conf = do
         (Memoria.Conf.cfgDbName conf)
         (Memoria.Conf.cfgDbUser conf)
         (Memoria.Conf.cfgDbPass conf)
+    Memoria.Timers.startTimer pool
     let state = State { stateCookies = Nothing, stateDbPool = pool }
     let runIO m = do
             (result, _) <- runStateT (runStateM m) state
@@ -261,7 +262,6 @@ main conf = do
             $ Network.Wai.Handler.Warp.defaultSettings
     let options = def { ST.settings = warpSettings }
     ST.scottyOptsT options runIO application
-
 
 setResponseCookies :: (Monad m, MonadIO m, ST.ScottyError e) => [(Text, Text)] -> ST.ActionT e m ()
 setResponseCookies cookies = for_ cookies $ \(k,v) -> do
