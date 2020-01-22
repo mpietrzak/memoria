@@ -32,9 +32,10 @@ module Memoria.Db (
 ) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Random.Class (weighted)
 import Data.Pool (Pool, createPool, takeResource, withResource)
 import Data.Text.Lazy (Text)
-import Formatting ((%) , fixed, format, fprint, int, shown, text)
+import Formatting ((%), (%.) , fixed, format, fprint, int, left, right, shown, text)
 import Text.RawString.QQ
 import qualified Data.ByteString.Lazy as Data.ByteString.Lazy
 import qualified Data.Map.Lazy
@@ -71,6 +72,7 @@ data Question = Question { qId :: Text
                          , qAnswer :: Text
                          , qCreatedAt :: Text
                          , qModifiedAt :: Text }
+    deriving Show
 
 class MonadIO m => HasDbConn m where
     getConnection :: m (PSQL.Connection)
@@ -605,57 +607,118 @@ getQuestionSetQuestions owner id = do
 
 getRandomQuestion :: HasDbConn m => Text -> m Question
 getRandomQuestion accId = do
-    go 0
+    r <- newId
+    withConnection $ \conn -> do
+        let params = [ HDBC.toSql r
+                     , HDBC.toSql accId
+                     , HDBC.toSql r
+                     , HDBC.toSql accId
+                     , HDBC.toSql accId
+                     ]
+        rows <- liftIO $ HDBC.quickQuery conn sql params
+        case rows of
+            [] -> error "No questions"
+            _ -> do
+                let questionsWithScores = map rowToQuestionWithScore rows
+                let questionsWithWeights = map
+                        (\(q, s) -> (q, scoreToWeight s))
+                        questionsWithScores
+                liftIO $ fprint
+                    ("Choosing weighted from:\n" % text)
+                    (formatQuestionWeights questionsWithWeights)
+                randomQuestion <- liftIO $ weighted questionsWithWeights
+                liftIO $ fprint ("Chosen: " % text % "\n") (qQuestion randomQuestion)
+                pure randomQuestion
     where
-        go i = if i < 100
-            then do
-                if i > 10
-                    then
-                        liftIO $ fprint
-                            (
-                                "getRandomQuestion: Searching for a random question, "
-                                % "acc: " % text % ", "
-                                % "attempt " % int % "\n"
-                            )
-                            accId
-                            i
-                    else
-                        pure ()
-                r <- newId
-                mq <- withConnection $ \conn -> do
-                    let params = [ HDBC.toSql r
-                                 , HDBC.toSql accId ]
-                    rows <- liftIO $ HDBC.quickQuery conn sql params
-                    case rows of
-                        [[id, question, answer, createdAt, modifiedAt]] ->
-                            pure $ Just $ Question { qId = HDBC.fromSql id
-                                                   , qQuestion = HDBC.fromSql question
-                                                   , qAnswer = HDBC.fromSql answer
-                                                   , qCreatedAt = HDBC.fromSql createdAt
-                                                   , qModifiedAt = HDBC.fromSql modifiedAt }
-                        _ -> pure Nothing
-                case mq of
-                    Just q -> pure q
-                    Nothing -> go (i + 1)
-            else
-                error "Can't get random question, too many attempts"
+        formatQuestionWeight (q, s) = format ((left 10 ' ' %. text) % " " % (right 6 ' ' %. fixed 4))
+            (qQuestion q)
+            s
+        formatQuestionWeights qw = Data.Text.Lazy.concat
+            $ map (\_l -> "  " <> _l <> "\n")
+            $ map formatQuestionWeight qw
+        rowToQuestionWithScore = \case
+            [id, question, answer, createdAt, modifiedAt, score] ->
+                (
+                    Question { qId = HDBC.fromSql id
+                             , qQuestion = HDBC.fromSql question
+                             , qAnswer = HDBC.fromSql answer
+                             , qCreatedAt = HDBC.fromSql createdAt
+                             , qModifiedAt = HDBC.fromSql modifiedAt },
+                    ((HDBC.fromSql score) :: Double)
+                )
+        -- Score 1 means well memorized -> 1 - (0.99 * 1) -> 1 - 0.99 -> 0.01
+        -- Score 0 means poorly memorized -> 1 - (0.99 * 0) -> 1.0
+        -- Score 0.5 means half memorized -> 1 - (0.99 * 0.5) -> 1 - 0.495 -> 0.505
+        scoreToWeight score = toRational (1 - (0.99 * score))
+        -- A query to select a number of questions with their scores, but a
+        -- random subset of those.
         sql = [r|
+                with
+                    random_questions_per_user as (
+                    select id
+                    from
+                        (
+                            (
+                                select id
+                                from question
+                                where
+                                    id >= ?
+                                    and question_set in (
+                                        select id
+                                        from question_set
+                                        where owner = ?
+                                    )
+                                order by id
+                            )
+                            union all
+                            (
+                                select id
+                                from question
+                                where
+                                    id < ?
+                                    and question_set in (
+                                        select id
+                                        from question_set
+                                        where owner = ?
+                                    )
+                                order by id
+                            )
+                        ) as r
+                    limit 1000
+                )
                 select
-                    id,
-                    question,
-                    answer,
-                    created_at,
-                    modified_at
-                from question
-                where
-                    id > ?
-                    and question_set in (
-                        select id
-                        from question_set
-                        where owner = ?
-                    )
-                order by id
-                limit 1
+                    r.id,
+                    q.question,
+                    q.answer,
+                    q.created_at,
+                    q.modified_at,
+                    coalesce(
+                        (
+                            select
+                                avg(
+                                    case is_correct
+                                        when true then 1.0
+                                        else 0.0
+                                    end
+                                )
+                            from
+                                (
+                                    select
+                                        is_correct
+                                    from
+                                        question_answer
+                                    where
+                                        question = r.id
+                                        and account = ?
+                                    order by answered_at desc
+                                    limit 100
+                                ) as last_answer
+                        ),
+                        0
+                    ) as score
+                from
+                    random_questions_per_user as r
+                    join question as q on (q.id = r.id)
             |]
 
 deleteSessionValue :: HasDbConn m => Text -> Text -> m ()
