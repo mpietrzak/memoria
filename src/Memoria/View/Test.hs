@@ -59,9 +59,17 @@ renderTestAnswer dbSize (answerId, answer) question isCorrect = do
                         H.p "This is not a correct answer, sorry..."
                         H.div $ do
                             H.p $ do
-                                "Incorrect grade? You can override the grade (TODO)"
+                                "Incorrect grade?"
+                                " "
+                                "["
+                                H.a ! A.href "edit-answer" $ "Edit answer"
+                                "]"
                             H.p $ do
-                                "Incorrect question? You can fix the question (TODO)"
+                                "Incorrect questtion?"
+                                " "
+                                "["
+                                H.a ! A.href "edit-question" $ "Edit question"
+                                "]"
                 H.div $ do
                     "["
                     H.a ! A.href "test" $ "Next question"

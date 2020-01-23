@@ -52,6 +52,7 @@ library
                  , Memoria.Page.CreateAccount
                  , Memoria.Page.CreateQuestion
                  , Memoria.Page.CreateQuestionSet
+                 , Memoria.Page.EditAnswer
                  , Memoria.Page.Index
                  , Memoria.Page.Login
                  , Memoria.Page.Logout
@@ -64,6 +65,7 @@ library
                  , Memoria.View.Base
                  , Memoria.View.CreateQuestion
                  , Memoria.View.CreateQuestionSet
+                 , Memoria.View.EditAnswer
                  , Memoria.View.Index
                  , Memoria.View.Login
                  , Memoria.View.QuestionAnswers

@@ -39,6 +39,7 @@ import Memoria.Page.Auth (handleAuth)
 import Memoria.Page.CreateAccount (handleCreateAccount)
 import Memoria.Page.CreateQuestion (handleCreateQuestion)
 import Memoria.Page.CreateQuestionSet (handleCreateQuestionSet)
+import Memoria.Page.EditAnswer (handleEditAnswer)
 import Memoria.Page.Index (handleIndex)
 import Memoria.Page.Login (handleLogin)
 import Memoria.Page.Logout (handleLogout)
@@ -215,6 +216,7 @@ application = do
     ST.get "/create-account" $ withSetCookies handleCreateAccount >>= ST.html
     ST.get "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.get "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
+    ST.get "/edit-answer" $ withSetCookies handleEditAnswer >>= ST.html
     ST.get "/login" $ withSetCookies handleLogin >>= ST.html
     -- TODO: GET on logout should not logout
     ST.get "/logout" $ withSetCookies handleLogout >>= ST.html
@@ -226,6 +228,7 @@ application = do
     ST.post "/answer" $ withSetCookies handleTestAnswer >>= ST.html
     ST.post "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.post "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
+    ST.post "/edit-answer" $ withSetCookies handleEditAnswer >>= ST.html
     ST.post "/login" $ withSetCookies handleLogin >>= ST.html
     ST.post "/settings-add-email" $ withSetCookies handleSettingsAddEmail >>= ST.html
     where
