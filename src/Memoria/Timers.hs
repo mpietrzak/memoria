@@ -20,6 +20,5 @@ startTimer pool = do
     pure ()
 
 timerMain :: Pool PSQL.Connection -> IO ()
-timerMain _pool = do
-    fprint ("Running timer...\n")
+timerMain _pool = fprint "Running timer...\n"
 

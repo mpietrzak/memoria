@@ -13,7 +13,7 @@ import Memoria.Db (HasDb, getDbSize, getQuestionSetsForAccount)
 import Memoria.Sessions (HasSessions)
 import Memoria.View.Index (renderIndex)
 import Memoria.View.Unauthenticated (renderUnauthenticated)
-import qualified Memoria.Common as Memoria.Common
+import qualified Memoria.Common
 import qualified Memoria.Db
 import qualified Memoria.View.Index
 

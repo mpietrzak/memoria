@@ -36,9 +36,12 @@ import Control.Monad.Random.Class (weighted)
 import Data.Pool (Pool, createPool, takeResource, withResource)
 import Data.Text.Lazy (Text)
 import Formatting ((%), (%.) , fixed, format, fprint, int, left, right, shown, text)
+import Prelude hiding (id)
 import Text.RawString.QQ
+import qualified Data.Bifunctor
 import qualified Data.ByteString.Lazy as Data.ByteString.Lazy
 import qualified Data.Map.Lazy
+import qualified Data.Maybe
 import qualified Data.Text.Encoding.Error
 import qualified Data.Text.Lazy as Data.Text.Lazy
 import qualified Data.Text.Lazy.Encoding as Data.Text.Lazy.Encoding
@@ -481,19 +484,18 @@ getAccountsByEmail email = do
                                                     , aeEmail = accEmailEmail
                                                     , aeCreatedAt = accEmailCreatedAt
                                                     , aeModifiedAt = accEmailModifiedAt }
-                    let account = case Data.Map.Lazy.lookup accId accMap of
-                            Nothing -> Account { aId = accId
-                                               , aCreatedAt = accCreatedAt
-                                               , aModifiedAt = accModifiedAt
-                                               , aEmails = [] }
-                            Just a -> a
+                    let account = Data.Maybe.fromMaybe
+                            Account { aId = accId
+                                    , aCreatedAt = accCreatedAt
+                                    , aModifiedAt = accModifiedAt
+                                    , aEmails = [] }
+                            (Data.Map.Lazy.lookup accId accMap)
                     let newAccount = account { aEmails = accountEmail : aEmails account }
                     let newAccMap = Data.Map.Lazy.insert accId newAccount accMap
                     foldRows newAccMap rest
 
 getAnswers :: (HasDbConn m, MonadIO m) => Text -> Text -> m [Answer]
-getAnswers accId questionId = do
-    withConnection $ \conn -> do
+getAnswers accId questionId = withConnection $ \conn -> do
         let params = [ HDBC.toSql accId
                      , HDBC.toSql questionId ]
         rows <- liftIO $ HDBC.quickQuery conn sql params
@@ -527,8 +529,7 @@ getAnswers accId questionId = do
 
 -- TODO: We probably shouldn't error here.
 getQuestionById :: (HasDbConn m, MonadIO m) => Text -> m Question
-getQuestionById questionId = do
-    withConnection $ \conn -> do
+getQuestionById questionId = withConnection $ \conn -> do
         rows <- liftIO $ HDBC.quickQuery conn sql params
         case rows of
             [row] -> case row of
@@ -557,8 +558,7 @@ getQuestionById questionId = do
 
 
 getQuestionSet :: (HasDbConn m, MonadIO m) => Text -> Text -> m QuestionSet
-getQuestionSet owner id = do
-    withConnection $ \conn -> do
+getQuestionSet owner id = withConnection $ \conn -> do
         rows <- liftIO $ HDBC.quickQuery conn sql [HDBC.toSql owner, HDBC.toSql id]
         case rows of
             [row] -> pure $ rowToQuestionSet row
@@ -577,8 +577,7 @@ getQuestionSet owner id = do
         |]
 
 getQuestionSetQuestions :: (HasDbConn m) => Text -> Text -> m [Question]
-getQuestionSetQuestions owner id = do
-    withConnection $ \conn -> do
+getQuestionSetQuestions owner id = withConnection $ \conn -> do
         rows <- liftIO $ HDBC.quickQuery conn sql params
         pure $ map rowToQuestion rows
     where
@@ -621,7 +620,7 @@ getRandomQuestion accId = do
             _ -> do
                 let questionsWithScores = map rowToQuestionWithScore rows
                 let questionsWithWeights = map
-                        (\(q, s) -> (q, scoreToWeight s))
+                        (Data.Bifunctor.second scoreToWeight)
                         questionsWithScores
                 liftIO $ fprint
                     ("Choosing weighted from:\n" % text)
@@ -635,8 +634,7 @@ getRandomQuestion accId = do
                 (qQuestion q)
                 s
         formatQuestionWeights qw = Data.Text.Lazy.concat
-            $ map (\_l -> "  " <> _l <> "\n")
-            $ map formatQuestionWeight qw
+            $ map ((\_l -> "  " <> _l <> "\n") . formatQuestionWeight) qw
         rowToQuestionWithScore = \case
             [id, question, answer, createdAt, modifiedAt, score] ->
                 (
@@ -645,8 +643,9 @@ getRandomQuestion accId = do
                              , qAnswer = HDBC.fromSql answer
                              , qCreatedAt = HDBC.fromSql createdAt
                              , qModifiedAt = HDBC.fromSql modifiedAt },
-                    ((HDBC.fromSql score) :: Double)
+                    HDBC.fromSql score :: Double
                 )
+            _ -> error "Invalid column count"
         -- Score 1 means well memorized -> 1 - (0.99 * 1) -> 1 - 0.99 -> 0.01
         -- Score 0 means poorly memorized -> 1 - (0.99 * 0) -> 1.0
         -- Score 0.5 means half memorized -> 1 - (0.99 * 0.5) -> 1 - 0.495 -> 0.505
@@ -732,10 +731,9 @@ getRandomQuestion accId = do
             |]
 
 deleteSessionValue :: HasDbConn m => Text -> Text -> m ()
-deleteSessionValue sessionKey name = do
-    withConnection $ \conn -> do
+deleteSessionValue sessionKey name = withConnection $ \conn -> do
         let params = [ HDBC.toSql sessionKey, HDBC.toSql name ]
-        liftIO $ HDBC.run conn sql params
+        _ <- liftIO $ HDBC.run conn sql params
         liftIO $ HDBC.commit conn
     where
         sql = [r|
@@ -760,9 +758,9 @@ ensureCsrfToken sessionKey = do
             newCsrfToken <- newId
             newSessionValueId <- newId
             withConnection $ \conn -> do
-                liftIO $ HDBC.run conn insertSql [ HDBC.toSql newSessionValueId
-                                                 , HDBC.toSql sessionKey
-                                                 , HDBC.toSql newCsrfToken ]
+                _ <- liftIO $ HDBC.run conn insertSql [ HDBC.toSql newSessionValueId
+                                                      , HDBC.toSql sessionKey
+                                                      , HDBC.toSql newCsrfToken ]
                 liftIO $ HDBC.commit conn
             withConnection $ \conn -> do
                 rows <- liftIO $ HDBC.quickQuery conn selectSql [HDBC.toSql sessionKey]
@@ -801,8 +799,7 @@ newId = liftIO $ Data.UUID.V4.nextRandom
     >>= \uuid -> pure $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
 
 sessionExists :: (Monad m, HasDb m) => Text -> m Bool
-sessionExists sessionKey = do
-    withConnection $ \conn -> do
+sessionExists sessionKey = withConnection $ \conn -> do
         let sql = [r|
                 select created_at
                 from session
@@ -812,8 +809,8 @@ sessionExists sessionKey = do
         rows <- liftIO $ HDBC.quickQuery conn sql params
         case rows of
             [row] -> case row of
-                [HDBC.SqlString v] -> pure True
-                [HDBC.SqlLocalTime v] -> pure True
+                [HDBC.SqlString _] -> pure True
+                [HDBC.SqlLocalTime _] -> pure True
                 v -> do
                     liftIO $ fprint ("sessionExists: Unexpected type: " % shown % "\n") v
                     pure True

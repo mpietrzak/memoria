@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Memoria.Page.CreateQuestionSet
@@ -32,7 +33,7 @@ handleCreateQuestionSet = do
         (isFormDataValid formData)
 
     case (mAccountId, method, isFormDataValid formData) of
-        (Nothing, _, _) -> redirect "/" >>= \_ -> pure ""
+        (Nothing, _, _) -> redirect "/" >> pure ""
         (_, "GET", _) -> pure $ renderCreateQuestionSet dbSize formData
         (_, "POST", False) -> pure $ renderCreateQuestionSet dbSize formData
         (Just accountId, "POST", True) -> createQuestionSet accountId formData
@@ -41,7 +42,7 @@ handleCreateQuestionSet = do
         createQuestionSet accId formData = do
             id <- liftIO $ Data.UUID.V4.nextRandom >>= \uuid ->
                 pure $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
-            let name = (Memoria.View.CreateQuestionSet.qsfdName formData)
+            let name = Memoria.View.CreateQuestionSet.qsfdName formData
             Memoria.Db.createQuestionSet id name accId
             redirect "/"
             pure ""
@@ -50,8 +51,7 @@ handleCreateQuestionSet = do
             case edbs of
                 Left _ -> pure (-1)
                 Right s -> pure s
-        getFormData method = do
-            case method of
+        getFormData = \case
                 "GET" -> pure defaultFormData
                 "POST" -> getRequestFormData
                 _ -> pure defaultFormData

@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Memoria.Page.CreateQuestion (
@@ -32,19 +33,19 @@ processField fieldName validator fieldSetter errSetter formData = do
         mval
     let validationResult = validator mval
     case validationResult of
-        Left err -> pure $ (False, errSetter err formData)
-        Right val -> pure $ (True, fieldSetter val formData)
+        Left err -> pure (False, errSetter err formData)
+        Right val -> pure (True, fieldSetter val formData)
 
 handleCreateQuestion :: (Memoria.Common.HasAccounts m, Memoria.Common.HasCsrfToken m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m, Memoria.Common.HasRequestMethod m) => m Text
 handleCreateQuestion = do
-    accId <- Memoria.Common.getAccountId >>= \m -> case m of
+    accId <- Memoria.Common.getAccountId >>= \case
         Just accId -> pure accId
         Nothing -> error "No account id"
-    dbSize <- Memoria.Db.getDbSize >>= \m -> case m of
+    dbSize <- Memoria.Db.getDbSize >>= \case
         Right s -> pure s
         Left _ -> error "Error getting db size"
     questionSetId <- Memoria.Common.getParam "question-set"
-        >>= \m -> case m of
+        >>= \case
             Just id -> pure id
             Nothing -> error "Question set id is required"
     let fields = [
@@ -70,20 +71,18 @@ handleCreateQuestion = do
         ("GET", _) -> pure $ V.renderCreateQuestion dbSize questionSetId csrfToken formData
         ("POST", False) -> pure $ V.renderCreateQuestion dbSize questionSetId csrfToken formData
         ("POST", True) -> do
-            actualCsrfToken <- Memoria.Common.getParam "csrf-token" >>= \c -> case c of
+            actualCsrfToken <- Memoria.Common.getParam "csrf-token" >>= \case
                 Nothing -> error "CSRF token is required"
                 Just t -> pure t
             Memoria.Common.checkCsrfToken actualCsrfToken
             Memoria.Db.addQuestion
                 accId
-                questionSetId
-                (
-                    (Data.Maybe.fromJust $ V.question formData),
-                    (Data.Maybe.fromJust $ V.answer formData))
+                questionSetId ( Data.Maybe.fromJust $ V.question formData
+                              , Data.Maybe.fromJust $ V.answer formData )
             Memoria.Common.redirect "/"
             pure ""
     where
-        processFormData fields = processFormDataGo True def fields
+        processFormData = processFormDataGo True def
         processFormDataGo isFormValid formData fields = case fields of
             (f:fs) -> do
                 let (name, validator, fieldSetter, errSetter) = f

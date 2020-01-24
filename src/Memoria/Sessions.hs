@@ -16,7 +16,7 @@ where
 
 import Data.Text.Lazy (Text)
 
-import qualified Memoria.Db as Memoria.Db
+import qualified Memoria.Db
 
 sessionAccountIdName :: Text
 sessionAccountIdName = "account_id"

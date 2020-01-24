@@ -26,12 +26,11 @@ renderQuestionAnswers dbSize answers = do
             case answers of
                 [] -> H.p "No answers yet"
                 _ -> H.table $ do
-                    H.thead $ do
-                        H.tr $ do
-                            H.th "Id"
-                            H.th "Answer"
-                            H.th "Answered at"
-                            H.th "Is correct"
+                    H.thead $ H.tr $ do
+                        H.th "Id"
+                        H.th "Answer"
+                        H.th "Answered at"
+                        H.th "Is correct"
                     H.tbody $ for_ answers $ \ans -> H.tr $ do
                         H.td $ H.toHtml $ ansId ans
                         H.td $ H.toHtml $ ansAnswer ans

@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Memoria.Page.Login (handleLogin) where
@@ -10,7 +11,6 @@ import qualified Data.List
 import qualified Data.Map.Lazy
 import qualified Data.Text.Lazy
 import qualified Network.Mail.Mime
-import qualified Network.Mail.Mime
 import qualified Network.Mail.SMTP
 import qualified Network.Mail.SMTP.Types
 import qualified Network.Socket
@@ -21,7 +21,7 @@ import qualified Memoria.View.Login as V
 
 handleLogin :: (Monad m, MonadIO m, DB.HasDb m, Memoria.Common.HasParams m, Memoria.Common.HasRequestMethod m) => m Text
 handleLogin = do
-    dbSize <- DB.getDbSize >>= \m -> case m of
+    dbSize <- DB.getDbSize >>= \case
         Right s -> pure s
         Left _ -> error "Error getting db size"
     method <- Memoria.Common.getRequestMethod
@@ -36,7 +36,7 @@ handleLogin = do
                     liftIO $ fprint
                         ("We have " % int % " accounts\n")
                         (Data.List.length accounts)
-                    when ((Data.List.length accounts) > 0) $ do
+                    when (not (Data.List.null accounts)) $ do
                         accountLoginTokens <- addLoginTokens Data.Map.Lazy.empty accounts
                         let emailText = makeEmailText accounts accountLoginTokens
                         liftIO $ fprint
@@ -47,8 +47,7 @@ handleLogin = do
                             (makeEmail email emailText)
                     pure "Check your inbox"
     where
-        addLoginTokens loginTokenMap accounts = do
-            case accounts of
+        addLoginTokens loginTokenMap accounts = case accounts of
                 [] -> pure loginTokenMap
                 acc:rest -> do
                     let accId = DB.aId acc
@@ -57,7 +56,7 @@ handleLogin = do
         makeEmail to body = Network.Mail.SMTP.simpleMail
             (Network.Mail.SMTP.Types.Address Nothing
                 (Data.Text.Lazy.toStrict "memoria@typesafe.org"))
-            [(Network.Mail.SMTP.Types.Address Nothing (Data.Text.Lazy.toStrict to))]
+            [Network.Mail.SMTP.Types.Address Nothing (Data.Text.Lazy.toStrict to)]
             []
             []
             "Memoria login"
@@ -65,13 +64,13 @@ handleLogin = do
         makeEmailText accounts tokens =
             "Click a link to login:\n"
             <> "\n"
-            <> (Data.Text.Lazy.concat $ map (\l -> l <> "\n") $ map (makeLoginLink tokens) accounts)
+            <> Data.Text.Lazy.concat (map ((<> "\n") . makeLoginLink tokens) accounts)
             <> "\n"
             <> "-- \n"
             <> "memoria\n"
         makeLoginLink tokens acc = "https://memoria.typesafe.org/auth?token=" <> token
             where
-                accId = (DB.aId acc)
+                accId = DB.aId acc
                 token = case Data.Map.Lazy.lookup accId tokens of
                     Just _t -> _t
                     Nothing -> error "No token for account"

@@ -52,7 +52,7 @@ renderQuestionSet dbSize questionSet questions = do
                     H.td $ do
                         "["
                         H.a
-                            ! A.href (H.toValue ("question-answers?question=" <> (qId q)))
+                            ! A.href (H.toValue ("question-answers?question=" <> qId q))
                             $ "Show answers"
                         "]"
     Memoria.View.Base.render content footer

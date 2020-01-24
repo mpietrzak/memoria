@@ -1,10 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-
 module Memoria.Page.CreateAccount (
     handleCreateAccount
 ) where
-
 
 import Data.Text.Lazy (Text)
 import Control.Monad.IO.Class (liftIO)
@@ -14,10 +12,9 @@ import Memoria.Common (HasRedirects)
 import Memoria.Cookies (HasCookies(setCookie))
 import Memoria.Db (HasDb)
 import Memoria.Sessions (HasSessions)
-import qualified Memoria.Common as Memoria.Common
-import qualified Memoria.Db as Memoria.Db
-import qualified Memoria.Sessions as Memoria.Sessions
-
+import qualified Memoria.Common
+import qualified Memoria.Db
+import qualified Memoria.Sessions
 
 handleCreateAccount :: (HasCookies m, HasDb m, HasRedirects m, HasSessions m) => m Text
 handleCreateAccount = do
