@@ -630,9 +630,10 @@ getRandomQuestion accId = do
                 liftIO $ fprint ("Chosen: " % text % "\n") (qQuestion randomQuestion)
                 pure randomQuestion
     where
-        formatQuestionWeight (q, s) = format ((left 10 ' ' %. text) % " " % (right 6 ' ' %. fixed 4))
-            (qQuestion q)
-            s
+        formatQuestionWeight (q, s) = format
+            ((left 40 ' ' %. text) % " " % fixed 4)
+                (qQuestion q)
+                s
         formatQuestionWeights qw = Data.Text.Lazy.concat
             $ map (\_l -> "  " <> _l <> "\n")
             $ map formatQuestionWeight qw
@@ -695,12 +696,21 @@ getRandomQuestion accId = do
                     coalesce(
                         (
                             select
-                                avg(
-                                    case is_correct
-                                        when true then 1.0
-                                        else 0.0
-                                    end
-                                )
+                                (
+                                    avg(
+                                        case is_correct
+                                            when true then 1.0
+                                            else 0.0
+                                        end
+                                    )
+                                *
+                                    (
+                                        case
+                                            when count(*) <= 5 then count(*) / 5.0
+                                            else 1.0
+                                        end
+                                    )
+                                ) as score
                             from
                                 (
                                     select
