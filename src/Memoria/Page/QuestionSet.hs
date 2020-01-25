@@ -33,8 +33,8 @@ handleQuestionSet = do
 
             pure $ renderQuestionSet dbSize viewQuestionSet viewQuestions
     where
-        dbQuestionSetToView dbqs = QuestionSet { id = Memoria.Db.id dbqs
-                                               , name = Memoria.Db.name dbqs }
+        dbQuestionSetToView dbqs = QuestionSet { id = Memoria.Db.qsId dbqs
+                                               , name = Memoria.Db.qsName dbqs }
         dbQuestionToView dbq = V.Question { V.qId = DB.qId dbq
                                           , V.qQuestion = DB.qQuestion dbq
                                           , V.qAnswer = DB.qAnswer dbq

@@ -30,8 +30,8 @@ handleIndex = do
                     dbQuestionSets <- Memoria.Db.getQuestionSetsForAccount accountId
                     let viewQuestionSets = map
                             (\q -> Memoria.View.Index.QuestionSet
-                                { Memoria.View.Index.id = Memoria.Db.id q
-                                , Memoria.View.Index.name = Memoria.Db.name q })
+                                { Memoria.View.Index.id = Memoria.Db.qsId q
+                                , Memoria.View.Index.name = Memoria.Db.qsName q })
                             dbQuestionSets
                     pure $ renderIndex
                         dbSize

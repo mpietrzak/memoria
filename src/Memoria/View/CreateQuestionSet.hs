@@ -15,7 +15,6 @@ import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
 import qualified Memoria.View.Base
-import Memoria.Db (getDbSize)
 
 data CreateQuestionSetFormData = CreateQuestionSetFormData { qsfdName :: Text
                                                            , qsfdNameError :: Maybe Text }

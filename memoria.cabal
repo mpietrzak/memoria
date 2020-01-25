@@ -9,6 +9,7 @@ library
     build-depends: HDBC >= 2.4
                  , HDBC-postgresql >= 2.3.2.6
                  , MonadRandom >= 0.5
+                 , aeson >= 1.4
                  , base >= 0.0.1
                  , binary >= 0.8
                  , blaze-html >= 0.9.1.1
@@ -53,6 +54,7 @@ library
                  , Memoria.Page.CreateQuestion
                  , Memoria.Page.CreateQuestionSet
                  , Memoria.Page.EditAnswer
+                 , Memoria.Page.Export
                  , Memoria.Page.Index
                  , Memoria.Page.Login
                  , Memoria.Page.Logout
@@ -66,6 +68,7 @@ library
                  , Memoria.View.CreateQuestion
                  , Memoria.View.CreateQuestionSet
                  , Memoria.View.EditAnswer
+                 , Memoria.View.Export
                  , Memoria.View.Index
                  , Memoria.View.Login
                  , Memoria.View.QuestionAnswers

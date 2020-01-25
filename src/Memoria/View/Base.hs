@@ -47,6 +47,7 @@ menu = H.div ! A.class_ "menu" $ do
     menuItem "create-question-set" "Create question set"
     menuItem "test" "Test"
     menuItem "settings" "Settings"
+    menuItem "export" "Export"
     menuItem "logout" "Logout"
     where
         menuItem href linkText = H.div ! A.class_ "menu-item" $ do

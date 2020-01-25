@@ -40,6 +40,7 @@ import Memoria.Page.CreateAccount (handleCreateAccount)
 import Memoria.Page.CreateQuestion (handleCreateQuestion)
 import Memoria.Page.CreateQuestionSet (handleCreateQuestionSet)
 import Memoria.Page.EditAnswer (handleEditAnswer)
+import Memoria.Page.Export (handleExport, handleExportQuestions)
 import Memoria.Page.Index (handleIndex)
 import Memoria.Page.Login (handleLogin)
 import Memoria.Page.Logout (handleLogout)
@@ -217,6 +218,7 @@ application = do
     ST.get "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.get "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
     ST.get "/edit-answer" $ withSetCookies handleEditAnswer >>= ST.html
+    ST.get "/export" $ withSetCookies handleExport >>= ST.html
     ST.get "/login" $ withSetCookies handleLogin >>= ST.html
     -- TODO: GET on logout should not logout
     ST.get "/logout" $ withSetCookies handleLogout >>= ST.html
@@ -231,6 +233,12 @@ application = do
     ST.post "/edit-answer" $ withSetCookies handleEditAnswer >>= ST.html
     ST.post "/login" $ withSetCookies handleLogin >>= ST.html
     ST.post "/settings-add-email" $ withSetCookies handleSettingsAddEmail >>= ST.html
+
+    ST.get "/export-questions" $ do
+        exportJson <- withSetCookies handleExportQuestions
+        ST.setHeader "content-type" "text/json"
+        ST.setHeader "content-disposition" "attachment; filename=\"memoria.json\""
+        ST.raw exportJson
     where
         withSetCookies a = do
             liftIO $ fprint ("application.withSetCookies: Running action\n")

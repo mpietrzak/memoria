@@ -22,6 +22,7 @@ module Memoria.Db (
     getAccountEmails,
     getAccountIdByToken,
     getAccountsByEmail,
+    getAllQuestionsForAccount,
     getAnswers,
     getQuestionById,
     getQuestionSet,
@@ -68,7 +69,7 @@ data Answer = Answer { ansId :: Text
                      , ansCreatedAt :: Text
                      , ansModifiedAt :: Text }
 
-data QuestionSet = QuestionSet { id :: Text, name :: Text }
+data QuestionSet = QuestionSet { qsId :: Text, qsName :: Text }
 
 data Question = Question { qId :: Text
                          , qQuestion :: Text
@@ -163,7 +164,7 @@ class HasDbConn m => HasDb m where
         where
             rowToQuestionSet row = case row of
                 [HDBC.SqlByteString id, HDBC.SqlByteString name] ->
-                   QuestionSet { id = bsToText id, name = bsToText name }
+                   QuestionSet { qsId = bsToText id, qsName = bsToText name }
                 _ -> error "Invalid type"
             bsToText = Data.Text.Lazy.Encoding.decodeUtf8With Data.Text.Encoding.Error.lenientDecode
                 . Data.ByteString.Lazy.fromStrict
@@ -494,6 +495,27 @@ getAccountsByEmail email = do
                     let newAccMap = Data.Map.Lazy.insert accId newAccount accMap
                     foldRows newAccMap rest
 
+getAllQuestionsForAccount :: (HasDbConn m, MonadIO m) => Text -> m [Question]
+getAllQuestionsForAccount accId = do
+    withConnection $ \conn -> do
+        let params = [HDBC.toSql accId]
+        rows <- liftIO $ HDBC.quickQuery conn sql params
+        pure $ map rowToQuestion rows
+    where
+        rowToQuestion row = case row of
+            [id, question, answer, createdAt, modifiedAt] ->
+                Question { qId = HDBC.fromSql id
+                         , qQuestion = HDBC.fromSql question
+                         , qAnswer = HDBC.fromSql answer
+                         , qCreatedAt = HDBC.fromSql createdAt
+                         , qModifiedAt = HDBC.fromSql modifiedAt }
+        sql = [r|
+                select id, question, answer, created_at, modified_at
+                from question
+                where question_set in (select id from question_set where owner = ?)
+                order by id
+            |]
+
 getAnswers :: (HasDbConn m, MonadIO m) => Text -> Text -> m [Answer]
 getAnswers accId questionId = withConnection $ \conn -> do
         let params = [ HDBC.toSql accId
@@ -565,8 +587,8 @@ getQuestionSet owner id = withConnection $ \conn -> do
             _ -> error "Invalid number of rows returned from DB"
     where
         rowToQuestionSet row = case row of
-            [sqlId, sqlName] -> QuestionSet { id = HDBC.fromSql sqlId
-                                            , name = HDBC.fromSql sqlName }
+            [sqlId, sqlName] -> QuestionSet { qsId = HDBC.fromSql sqlId
+                                            , qsName = HDBC.fromSql sqlName }
             _ -> error "Invalid number of columns"
         sql = [r|
             select id, name
@@ -606,11 +628,11 @@ getQuestionSetQuestions owner id = withConnection $ \conn -> do
 
 getRandomQuestion :: HasDbConn m => Text -> m Question
 getRandomQuestion accId = do
-    r <- newId
+    randomValue <- newId
     withConnection $ \conn -> do
-        let params = [ HDBC.toSql r
+        let params = [ HDBC.toSql randomValue
                      , HDBC.toSql accId
-                     , HDBC.toSql r
+                     , HDBC.toSql randomValue
                      , HDBC.toSql accId
                      , HDBC.toSql accId
                      ]
