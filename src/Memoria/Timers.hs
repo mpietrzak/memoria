@@ -58,7 +58,7 @@ startTimers pool statsRef = do
 
 startSysStatsTimer pool statsRef = do
     statsTimerMain pool statsRef
-    let delay = Control.Concurrent.Suspend.sDelay 60
+    let delay = Control.Concurrent.Suspend.sDelay 600
     _timer <- Control.Concurrent.Timer.repeatedTimer
         (statsTimerMain pool statsRef)
         delay
@@ -67,7 +67,7 @@ startSysStatsTimer pool statsRef = do
 statsTimerMain :: Pool PSQL.Connection -> IORef SysStats -> IO ()
 statsTimerMain pool statsRef = do
     let env = TimerEnv { tDbPool = pool, tStatsRef = statsRef }
-    result <- runReaderT statsTimerMainM env
+    _result <- runReaderT statsTimerMainM env
     pure ()
 
 statsTimerMainM :: (MonadIO m, Memoria.Db.HasDb m, Memoria.Common.HasSetSysStats m) => m ()
