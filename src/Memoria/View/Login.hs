@@ -21,5 +21,5 @@ renderLogin footerStats = do
                 H.tr $ H.td ! A.align "right" ! A.colspan "2" $ H.button
                     ! A.type_ "submit"
                     $ "Ok"
-    Memoria.View.Base.render footerStats content
+    Memoria.View.Base.renderWithoutMenu footerStats content
 

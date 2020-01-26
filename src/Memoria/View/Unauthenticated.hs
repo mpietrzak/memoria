@@ -21,5 +21,5 @@ renderUnauthenticated footerStats = do
                 H.a ! A.href "login" $ H.toHtml ("[Login]" :: Text)
                 H.toHtml (" " :: Text)
                 H.a ! A.href "create-account" $ H.toHtml ("[Create account]" :: Text)
-    Memoria.View.Base.render footerStats content
+    Memoria.View.Base.renderWithoutMenu footerStats content
 

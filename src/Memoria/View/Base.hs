@@ -1,7 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Memoria.View.Base (FooterStats(..), render) where
+module Memoria.View.Base (
+    FooterStats(..),
+    render,
+    renderWithoutMenu
+) where
 
 import Data.Text.Lazy (Text)
 import Text.Blaze.Renderer.Text (renderMarkup)
@@ -85,6 +89,19 @@ render footerStats content = renderMarkup $ H.docTypeHtml $ do
         H.style $ H.toHtml css
     H.body $ do
         H.div ! A.class_ "menu" $ menu
+        H.div ! A.class_ "content" $ content
+        footer footerStats
+
+
+renderWithoutMenu :: FooterStats -> H.Html -> Text
+renderWithoutMenu footerStats content = renderMarkup $ H.docTypeHtml $ do
+    H.head $ do
+        H.title $ H.toHtml ("test" :: Text)
+        H.meta
+            ! A.name "viewport"
+            ! A.content "width=device-width, initial-scale=1"
+        H.style $ H.toHtml css
+    H.body $ do
         H.div ! A.class_ "content" $ content
         footer footerStats
 

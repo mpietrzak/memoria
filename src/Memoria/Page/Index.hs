@@ -3,13 +3,11 @@
 
 module Memoria.Page.Index (handleIndex) where
 
-import Prelude hiding (id)
-import Control.Monad.IO.Class (liftIO)
 import Data.Text.Lazy (Text)
-import Formatting ((%), format, fprint, shown)
+import Prelude hiding (id)
 
 import Memoria.Common (HasAccounts, HasFooterStats)
-import Memoria.Db (HasDb, getDbSize, getQuestionSetsForAccount)
+import Memoria.Db (HasDb, getQuestionSetsForAccount)
 import Memoria.Sessions (HasSessions)
 import Memoria.View.Index (renderIndex)
 import Memoria.View.Unauthenticated (renderUnauthenticated)
