@@ -36,14 +36,12 @@ processField fieldName validator fieldSetter errSetter formData = do
         Left err -> pure (False, errSetter err formData)
         Right val -> pure (True, fieldSetter val formData)
 
-handleCreateQuestion :: (Memoria.Common.HasAccounts m, Memoria.Common.HasCsrfToken m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m, Memoria.Common.HasRequestMethod m) => m Text
+handleCreateQuestion :: (Memoria.Common.HasAccounts m, Memoria.Common.HasCsrfToken m, Memoria.Common.HasFooterStats m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m, Memoria.Common.HasRequestMethod m) => m Text
 handleCreateQuestion = do
+    footerStats <- Memoria.Common.getFooterStats
     accId <- Memoria.Common.getAccountId >>= \case
         Just accId -> pure accId
         Nothing -> error "No account id"
-    dbSize <- Memoria.Db.getDbSize >>= \case
-        Right s -> pure s
-        Left _ -> error "Error getting db size"
     questionSetId <- Memoria.Common.getParam "question-set"
         >>= \case
             Just id -> pure id
@@ -68,8 +66,8 @@ handleCreateQuestion = do
         "GET" -> pure (False, def)
         _ -> processFormData fields
     case (method, isFormDataValid) of
-        ("GET", _) -> pure $ V.renderCreateQuestion dbSize questionSetId csrfToken formData
-        ("POST", False) -> pure $ V.renderCreateQuestion dbSize questionSetId csrfToken formData
+        ("GET", _) -> pure $ V.renderCreateQuestion footerStats questionSetId csrfToken formData
+        ("POST", False) -> pure $ V.renderCreateQuestion footerStats questionSetId csrfToken formData
         ("POST", True) -> do
             actualCsrfToken <- Memoria.Common.getParam "csrf-token" >>= \case
                 Nothing -> error "CSRF token is required"

@@ -35,28 +35,24 @@ processField fieldName validator fieldSetter errSetter formData = do
         Left err -> pure (False, fieldSetter mval $ errSetter err formData)
         Right val -> pure (True, fieldSetter val formData)
 
-handleSettings :: (Monad m, DB.HasDb m, Memoria.Common.HasAccounts m) => m Text
+handleSettings :: (Monad m, DB.HasDb m, Memoria.Common.HasAccounts m, Memoria.Common.HasFooterStats m) => m Text
 handleSettings = do
+    footerStats <- Memoria.Common.getFooterStats
     accId <- Memoria.Common.getAccountId >>= \case
         Just accId -> pure accId
         Nothing -> error "No account id"
-    dbSize <- DB.getDbSize >>= \case
-        Right s -> pure s
-        Left _ -> error "Error getting db size"
     dbAccEmails <- DB.getAccountEmails accId
     let vAccEmails = map dbToViewAccEmail dbAccEmails
-    pure $ V.renderSettings dbSize vAccEmails
+    pure $ V.renderSettings footerStats vAccEmails
     where
         dbToViewAccEmail dbEmail = V.AccountEmail { V.aeId = DB.aeId dbEmail
                                                   , V.aeEmail = DB.aeEmail dbEmail
                                                   , V.aeCreatedAt = DB.aeCreatedAt dbEmail
                                                   , V.aeModifiedAt = DB.aeModifiedAt dbEmail }
 
-handleSettingsAddEmail :: (Monad m, DB.HasDb m, Memoria.Common.HasAccounts m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m, Memoria.Common.HasRequestMethod m) => m Text
+handleSettingsAddEmail :: (Monad m, DB.HasDb m, Memoria.Common.HasAccounts m, Memoria.Common.HasFooterStats m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m, Memoria.Common.HasRequestMethod m) => m Text
 handleSettingsAddEmail = do
-    dbSize <- DB.getDbSize >>= \case
-        Right s -> pure s
-        Left _ -> error "Error getting db size"
+    footerStats <- Memoria.Common.getFooterStats
     accId <- Memoria.Common.getAccountId >>= \case
         Just accId -> pure accId
         Nothing -> error "No account id"
@@ -70,7 +66,7 @@ handleSettingsAddEmail = do
              ]
     method <- Memoria.Common.getRequestMethod
     case method of
-        "GET" -> pure $ V.renderSettingsAddEmail dbSize def
+        "GET" -> pure $ V.renderSettingsAddEmail footerStats def
         "POST" -> do
             (isFormValid, formData) <- processFormData fields
             liftIO $ fprint
@@ -84,7 +80,7 @@ handleSettingsAddEmail = do
                         Memoria.Common.redirect "settings"
                         pure "")
             else
-                pure $ V.renderSettingsAddEmail dbSize formData
+                pure $ V.renderSettingsAddEmail footerStats formData
     where
         processFormData = processFormDataGo True def
         processFormDataGo isFormValid formData fields = case fields of

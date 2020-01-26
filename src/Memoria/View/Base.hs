@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Memoria.View.Base (footer, menu, render) where
+module Memoria.View.Base (FooterStats(..), render) where
 
 import Data.Text.Lazy (Text)
 import Text.Blaze.Renderer.Text (renderMarkup)
@@ -10,7 +10,12 @@ import Text.RawString.QQ
 import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
-import Memoria.Common (humanByteSize)
+import Memoria.View.Common (humanByteSize)
+
+data FooterStats = FooterStats {
+    fDatabaseSize :: Maybe Integer,
+    fResidentSetSize :: Maybe Integer
+}
 
 css :: Text
 css = [r|
@@ -36,10 +41,18 @@ css = [r|
         }
     |]
 
-footer :: Integer -> H.Html
-footer dbSize = H.div ! A.class_ "footer" $ H.p $ do
-    "Database size: "
-    H.toHtml $ humanByteSize dbSize
+footer :: FooterStats -> H.Html
+footer stats = H.div ! A.class_ "footer" $ H.p $ do
+    case fDatabaseSize stats of
+        Just dbSize -> H.p $ do
+            "Database size: "
+            H.toHtml $ humanByteSize dbSize
+        Nothing -> ""
+    case fResidentSetSize stats of
+        Just rss -> H.p $ do
+            "Resident set size: "
+            H.toHtml $ humanByteSize rss
+        Nothing -> ""
 
 menu :: H.Html
 menu = H.div ! A.class_ "menu" $ do
@@ -59,9 +72,8 @@ menu = H.div ! A.class_ "menu" $ do
 
 -- This is a most common render and should accept things that are unique to
 -- each of the most common page.
--- TODO: menu is common to most common pages, so it should be handled here.
-render :: H.Html -> H.Html -> Text
-render content footer = renderMarkup $ H.docTypeHtml $ do
+render :: FooterStats -> H.Html -> Text
+render footerStats content = renderMarkup $ H.docTypeHtml $ do
     H.head $ do
         H.title $ H.toHtml ("test" :: Text)
         H.meta
@@ -69,5 +81,7 @@ render content footer = renderMarkup $ H.docTypeHtml $ do
             ! A.content "width=device-width, initial-scale=1"
         H.style $ H.toHtml css
     H.body $ do
+        H.div ! A.class_ "menu" $ menu
         H.div ! A.class_ "content" $ content
-        footer
+        footer footerStats
+

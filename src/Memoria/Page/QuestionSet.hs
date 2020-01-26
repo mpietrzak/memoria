@@ -14,15 +14,13 @@ import qualified Memoria.Db
 import qualified Memoria.Db as DB
 import qualified Memoria.View.QuestionSet as V
 
-handleQuestionSet :: (Monad m, Memoria.Common.HasAccounts m, Memoria.Db.HasDb m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m) => m Text
+handleQuestionSet :: (Monad m, Memoria.Common.HasAccounts m, Memoria.Db.HasDb m, Memoria.Common.HasFooterStats m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m) => m Text
 handleQuestionSet = do
     mAccountId <- Memoria.Common.getAccountId
     case mAccountId of
         Nothing -> Memoria.Common.redirect "/" >> pure ""
         Just accId -> do
-            dbSize <- Memoria.Db.getDbSize >>= \case
-                Right s -> pure s
-                Left err -> error "error getting db size"
+            footerStats <- Memoria.Common.getFooterStats
             (questionSetId :: Text) <- Memoria.Common.getParam "id" >>= \case
                 Nothing -> error "Missing id param"
                 Just id -> pure id
@@ -31,7 +29,7 @@ handleQuestionSet = do
             dbQuestions <- Memoria.Db.getQuestionSetQuestions accId questionSetId
             let viewQuestions = map dbQuestionToView dbQuestions
 
-            pure $ renderQuestionSet dbSize viewQuestionSet viewQuestions
+            pure $ renderQuestionSet footerStats viewQuestionSet viewQuestions
     where
         dbQuestionSetToView dbqs = QuestionSet { id = Memoria.Db.qsId dbqs
                                                , name = Memoria.Db.qsName dbqs }

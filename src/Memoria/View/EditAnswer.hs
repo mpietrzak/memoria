@@ -13,6 +13,7 @@ import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
 import qualified Memoria.View.Base as Memoria.View.Base
+import Memoria.View.Base (FooterStats)
 
 data EditAnswerFormData = EditAnswerFormData { eaAnswer :: Text
                                              , eaIsCorrect :: Bool }
@@ -21,9 +22,8 @@ instance Default EditAnswerFormData where
     def = EditAnswerFormData { eaAnswer = ""
                              , eaIsCorrect = False }
 
-renderEditAnswer :: Integer -> EditAnswerFormData -> Text
-renderEditAnswer dbSize formData = do
-    let footer = Memoria.View.Base.footer dbSize
+renderEditAnswer :: FooterStats -> EditAnswerFormData -> Text
+renderEditAnswer footerStats formData = do
     let content = "xxx"
-    Memoria.View.Base.render content footer
+    Memoria.View.Base.render footerStats content
 

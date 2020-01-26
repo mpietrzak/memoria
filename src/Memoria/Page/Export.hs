@@ -32,15 +32,13 @@ data ExportQuestion = ExportQuestion { id :: Text
 instance ToJSON ExportQuestions
 instance ToJSON ExportQuestion
 
-handleExport :: (Memoria.Common.HasAccounts m) => m Text
+handleExport :: (Memoria.Common.HasAccounts m, Memoria.Common.HasFooterStats m) => m Text
 handleExport = do
+    footerStats <- Memoria.Common.getFooterStats
     accId <- Memoria.Common.getAccountId >>= \case
         Just accId -> pure accId
         Nothing -> error "No account id"
-    dbSize <- DB.getDbSize >>= \case
-        Right s -> pure s
-        Left _ -> error "Error getting db size"
-    pure $ V.renderExport dbSize
+    pure $ V.renderExport footerStats
 
 handleExportQuestions :: (Memoria.Common.HasAccounts m) => m ByteString
 handleExportQuestions = do

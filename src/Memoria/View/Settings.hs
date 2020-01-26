@@ -14,6 +14,7 @@ import Text.Blaze.XHtml1.Strict ((!))
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 import qualified Text.Blaze.XHtml1.Strict as H
 
+import Memoria.View.Base (FooterStats)
 import qualified Memoria.View.Base
 
 data AccountEmail = AccountEmail { aeId :: Text
@@ -33,11 +34,9 @@ instance Default AddEmailFormData where
     Nothing -> h
     Just a -> h ! a
 
-renderSettings :: Integer -> [AccountEmail] -> Text
-renderSettings dbSize accountEmails = do
-    let footer = Memoria.View.Base.footer dbSize
+renderSettings :: FooterStats -> [AccountEmail] -> Text
+renderSettings footerStats accountEmails = do
     let content = H.div $ do
-            Memoria.View.Base.menu
             H.div $ do
                 "["
                 H.a
@@ -53,13 +52,11 @@ renderSettings dbSize accountEmails = do
                     H.td $ H.toHtml (aeEmail accountEmail)
                     H.td $ H.toHtml (aeCreatedAt accountEmail)
                     H.td $ H.toHtml (aeModifiedAt accountEmail)
-    Memoria.View.Base.render content footer
+    Memoria.View.Base.render footerStats content
 
-renderSettingsAddEmail :: Integer -> AddEmailFormData -> Text
-renderSettingsAddEmail dbSize formData = do
-    let footer = Memoria.View.Base.footer dbSize
+renderSettingsAddEmail :: FooterStats -> AddEmailFormData -> Text
+renderSettingsAddEmail footerStats formData = do
     let content = H.div $ do
-            Memoria.View.Base.menu
             H.form ! A.method "post" $ H.table $ H.tbody $ do
                 H.tr $ do
                     H.td $ H.input
@@ -75,7 +72,7 @@ renderSettingsAddEmail dbSize formData = do
                     $ H.button
                             ! A.type_ "submit"
                             $ "Ok"
-    Memoria.View.Base.render content footer
+    Memoria.View.Base.render footerStats content
     where
         errTd me = case me of
             Nothing -> ""

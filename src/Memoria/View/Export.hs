@@ -10,14 +10,13 @@ import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
 import qualified Memoria.View.Base
+import Memoria.View.Base (FooterStats)
 
-renderExport :: Integer -> Text
-renderExport dbSize = do
-    let footer = Memoria.View.Base.footer dbSize
+renderExport :: FooterStats -> Text
+renderExport footerStats = do
     let content = H.div $ do
-            Memoria.View.Base.menu
             H.div $ H.p $ H.a
                 ! A.href "export-questions"
                 $ "Export"
-    Memoria.View.Base.render content footer
+    Memoria.View.Base.render footerStats content
 

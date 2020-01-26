@@ -75,7 +75,8 @@ data Question = Question { qId :: Text
                          , qQuestion :: Text
                          , qAnswer :: Text
                          , qCreatedAt :: Text
-                         , qModifiedAt :: Text }
+                         , qModifiedAt :: Text
+                         , qScore :: Double }
     deriving Show
 
 class MonadIO m => HasDbConn m where

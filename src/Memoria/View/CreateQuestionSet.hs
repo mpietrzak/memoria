@@ -15,16 +15,15 @@ import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
 import qualified Memoria.View.Base
+import Memoria.View.Base (FooterStats)
 
 data CreateQuestionSetFormData = CreateQuestionSetFormData { qsfdName :: Text
                                                            , qsfdNameError :: Maybe Text }
     deriving (Show)
 
-renderCreateQuestionSet :: Integer -> CreateQuestionSetFormData -> Text
-renderCreateQuestionSet dbSize formData = do
-    let footer = Memoria.View.Base.footer dbSize
+renderCreateQuestionSet :: FooterStats -> CreateQuestionSetFormData -> Text
+renderCreateQuestionSet footerStats formData = do
     let content = H.div $ do
-            Memoria.View.Base.menu
             H.div
                 $ H.form ! A.method "post"
                 $ H.table
@@ -38,5 +37,5 @@ renderCreateQuestionSet dbSize formData = do
                     H.tr
                         $ H.td ! A.colspan "2" ! A.align "right"
                         $ H.button "Create"
-    Memoria.View.Base.render content footer
+    Memoria.View.Base.render footerStats content
 

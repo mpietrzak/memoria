@@ -19,14 +19,12 @@ import qualified Memoria.Db as DB
 import qualified Memoria.Common
 import qualified Memoria.View.Login as V
 
-handleLogin :: (Monad m, MonadIO m, DB.HasDb m, Memoria.Common.HasParams m, Memoria.Common.HasRequestMethod m) => m Text
+handleLogin :: (Monad m, MonadIO m, DB.HasDb m, Memoria.Common.HasFooterStats m, Memoria.Common.HasParams m, Memoria.Common.HasRequestMethod m) => m Text
 handleLogin = do
-    dbSize <- DB.getDbSize >>= \case
-        Right s -> pure s
-        Left _ -> error "Error getting db size"
+    footerStats <- Memoria.Common.getFooterStats
     method <- Memoria.Common.getRequestMethod
     case method of
-        "GET" -> pure $ V.renderLogin dbSize
+        "GET" -> pure $ V.renderLogin footerStats
         "POST" -> do
             mEmail <- Memoria.Common.getParam "email"
             case mEmail of

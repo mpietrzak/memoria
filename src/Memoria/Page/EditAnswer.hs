@@ -13,11 +13,9 @@ import qualified Memoria.Common
 import qualified Memoria.Db as DB
 import qualified Memoria.View.EditAnswer as V
 
-handleEditAnswer :: (Memoria.Common.HasAccounts m, Memoria.Common.HasParams m, DB.HasDb m) => m Text
+handleEditAnswer :: (Memoria.Common.HasAccounts m, Memoria.Common.HasFooterStats m, Memoria.Common.HasParams m, DB.HasDb m) => m Text
 handleEditAnswer = do
-    dbSize <- DB.getDbSize >>= \case
-        Right s -> pure s
-        Left err -> error $ Data.Text.Lazy.unpack $ "Error getting db size: " <> err
+    footerStats <- Memoria.Common.getFooterStats
     answerId <- Memoria.Common.getParam "answer"
     let formData = def
-    pure $ V.renderEditAnswer dbSize formData
+    pure $ V.renderEditAnswer footerStats formData

@@ -8,10 +8,10 @@ import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
 import qualified Memoria.View.Base
+import Memoria.View.Base (FooterStats)
 
-renderLogin :: Integer -> Text
-renderLogin dbSize = do
-    let foot = Memoria.View.Base.footer dbSize
+renderLogin :: FooterStats -> Text
+renderLogin footerStats = do
     let content = H.div $ do
             H.p $ H.toHtml ("hello, unauthenticated" :: Text)
             H.div $ H.form ! A.method "post" $ H.table $ H.tbody $ do
@@ -21,5 +21,5 @@ renderLogin dbSize = do
                 H.tr $ H.td ! A.align "right" ! A.colspan "2" $ H.button
                     ! A.type_ "submit"
                     $ "Ok"
-    Memoria.View.Base.render content foot
+    Memoria.View.Base.render footerStats content
 

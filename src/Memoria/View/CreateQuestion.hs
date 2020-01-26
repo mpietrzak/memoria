@@ -29,11 +29,9 @@ instance Default CreateQuestionFormData where
     Nothing -> h
     Just a -> h ! a
 
-renderCreateQuestion :: Integer -> Text -> Text -> CreateQuestionFormData -> Text
-renderCreateQuestion dbSize questionSetId csrfToken formData = do
-    let footer = Memoria.View.Base.footer dbSize
+renderCreateQuestion :: Memoria.View.Base.FooterStats -> Text -> Text -> CreateQuestionFormData -> Text
+renderCreateQuestion stats questionSetId csrfToken formData = do
     let content = H.div $ do
-            Memoria.View.Base.menu
             H.p "Adding question"
             H.form ! A.method "post" $ H.table $ do
                 H.tr $ do
@@ -64,7 +62,7 @@ renderCreateQuestion dbSize questionSetId csrfToken formData = do
                         ! A.name "question-set"
                         ! A.value (H.toValue questionSetId)
                     H.button ! A.type_ "submit" $ "Ok"
-    Memoria.View.Base.render content footer
+    Memoria.View.Base.render stats content
     where
         errTd me = case me of
             Nothing -> ""

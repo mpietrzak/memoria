@@ -12,17 +12,16 @@ import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
 import qualified Memoria.View.Base
+import Memoria.View.Base (FooterStats)
 
 data Answer = Answer { ansId :: Text
                      , ansAnswer :: Text
                      , ansIsCorrect :: Bool
                      , ansAnsweredAt :: Text }
 
-renderQuestionAnswers :: Integer -> [Answer] -> Text
-renderQuestionAnswers dbSize answers = do
-    let footer = Memoria.View.Base.footer dbSize
+renderQuestionAnswers :: FooterStats -> [Answer] -> Text
+renderQuestionAnswers footerStats answers = do
     let content = H.div $ do
-            Memoria.View.Base.menu
             case answers of
                 [] -> H.p "No answers yet"
                 _ -> H.table $ do
@@ -36,7 +35,7 @@ renderQuestionAnswers dbSize answers = do
                         H.td $ H.toHtml $ ansAnswer ans
                         H.td $ H.toHtml $ ansAnsweredAt ans
                         H.td $ H.toHtml $ ansIsCorrect ans
-    Memoria.View.Base.render content footer
+    Memoria.View.Base.render footerStats content
 
 
 

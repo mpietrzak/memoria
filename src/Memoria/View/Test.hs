@@ -11,6 +11,7 @@ import Text.Blaze.XHtml1.Strict ((!))
 import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
+import Memoria.View.Base (FooterStats)
 import qualified Memoria.View.Base
 
 data Question = Question { qId :: Text
@@ -19,11 +20,9 @@ data Question = Question { qId :: Text
                          , qCreatedAt :: Text
                          , qModifiedAt :: Text }
 
-renderTest :: Integer -> Question -> Text
-renderTest dbSize question = do
-    let footer = Memoria.View.Base.footer dbSize
+renderTest :: FooterStats -> Question -> Text
+renderTest footerStats question = do
     let content = H.div $ do
-            Memoria.View.Base.menu
             H.div $ do
                 H.p $ do
                     "Question: "
@@ -38,13 +37,11 @@ renderTest dbSize question = do
                             ! A.type_ "hidden"
                             ! A.value (H.toValue (qId question))
                         H.button ! A.type_ "submit" $ "Ok"
-    Memoria.View.Base.render content footer
+    Memoria.View.Base.render footerStats content
 
-renderTestAnswer :: Integer -> (Text, Text) -> Question -> Bool -> Text
-renderTestAnswer dbSize (answerId, answer) question isCorrect = do
-    let footer = Memoria.View.Base.footer dbSize
+renderTestAnswer :: FooterStats -> (Text, Text) -> Question -> Bool -> Text
+renderTestAnswer footerStats (answerId, answer) question isCorrect = do
     let content = H.div $ do
-            Memoria.View.Base.menu
             H.div $ do
                 if isCorrect
                     then H.div $ do
@@ -75,5 +72,5 @@ renderTestAnswer dbSize (answerId, answer) question isCorrect = do
                     H.a ! A.href "test" $ "Next question"
                     "]"
 
-    Memoria.View.Base.render content footer
+    Memoria.View.Base.render footerStats content
 

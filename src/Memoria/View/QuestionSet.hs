@@ -14,6 +14,7 @@ import Data.Foldable (for_)
 import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
+import Memoria.View.Base (FooterStats)
 import qualified Memoria.View.Base
 
 data QuestionSet = QuestionSet { id :: Text, name :: Text }
@@ -24,11 +25,9 @@ data Question = Question { qId :: Text
                          , qCreatedAt :: Text
                          , qModifiedAt :: Text }
 
-renderQuestionSet :: Integer -> QuestionSet -> [Question] -> Text
-renderQuestionSet dbSize questionSet questions = do
-    let footer = Memoria.View.Base.footer dbSize
+renderQuestionSet :: FooterStats -> QuestionSet -> [Question] -> Text
+renderQuestionSet footerStats questionSet questions = do
     let content = H.div $ do
-            Memoria.View.Base.menu
             H.div $ do
                 "Question set: "
                 H.toHtml $ name questionSet
@@ -55,6 +54,6 @@ renderQuestionSet dbSize questionSet questions = do
                             ! A.href (H.toValue ("question-answers?question=" <> qId q))
                             $ "Show answers"
                         "]"
-    Memoria.View.Base.render content footer
+    Memoria.View.Base.render footerStats content
     where
         addQuestionHref = H.toValue $ "create-question?question-set=" <> id questionSet

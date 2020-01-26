@@ -19,26 +19,22 @@ questionDbToView dbq = V.Question { V.qId = DB.qId dbq
                                   , V.qCreatedAt = DB.qCreatedAt dbq
                                   , V.qModifiedAt = DB.qModifiedAt dbq }
 
-handleTest :: (Memoria.Common.HasAccounts m, Memoria.Common.HasParams m, DB.HasDbConn m) => m Text
+handleTest :: (Memoria.Common.HasAccounts m, Memoria.Common.HasFooterStats m, Memoria.Common.HasParams m, DB.HasDbConn m) => m Text
 handleTest = do
+    footerStats <- Memoria.Common.getFooterStats
     accId <- Memoria.Common.getAccountId >>= \case
         Just accId -> pure accId
         Nothing -> error "No account id"
     question <- DB.getRandomQuestion accId
     let viewQuestion = questionDbToView question
-    dbSize <- DB.getDbSize >>= \case
-        Right s -> pure s
-        Left _ -> error "Error getting db size"
-    pure $ V.renderTest dbSize viewQuestion
+    pure $ V.renderTest footerStats viewQuestion
 
-handleTestAnswer :: (Memoria.Common.HasAccounts m, Memoria.Common.HasParams m) => m Text
+handleTestAnswer :: (Memoria.Common.HasAccounts m, Memoria.Common.HasFooterStats m, Memoria.Common.HasParams m) => m Text
 handleTestAnswer = do
+    footerStats <- Memoria.Common.getFooterStats
     accId <- Memoria.Common.getAccountId >>= \case
         Just accId -> pure accId
         Nothing -> error "No account id"
-    dbSize <- DB.getDbSize >>= \case
-        Right s -> pure s
-        Left _ -> error "Error getting db size"
     questionId <- Memoria.Common.getParam "question" >>= \case
         Nothing -> error "Question is required"
         Just _q -> pure _q
@@ -49,4 +45,4 @@ handleTestAnswer = do
     let isAnswerCorrect = DB.qAnswer question == answer
     questionAnswerId <- DB.addQuestionAnswer accId questionId answer isAnswerCorrect
     let vQuestion = questionDbToView question
-    pure $ V.renderTestAnswer dbSize (questionAnswerId, answer) vQuestion isAnswerCorrect
+    pure $ V.renderTestAnswer footerStats (questionAnswerId, answer) vQuestion isAnswerCorrect

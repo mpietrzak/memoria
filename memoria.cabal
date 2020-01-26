@@ -45,6 +45,7 @@ library
     exposed-modules: Memoria
     ghc-options: -O -Wall
     hs-source-dirs: src
+    c-sources: c/rss.c
     other-modules: Memoria.Common
                  , Memoria.Conf
                  , Memoria.Cookies
@@ -63,8 +64,10 @@ library
                  , Memoria.Page.Settings
                  , Memoria.Page.Test
                  , Memoria.Sessions
+                 , Memoria.Sys
                  , Memoria.Timers
                  , Memoria.View.Base
+                 , Memoria.View.Common
                  , Memoria.View.CreateQuestion
                  , Memoria.View.CreateQuestionSet
                  , Memoria.View.EditAnswer

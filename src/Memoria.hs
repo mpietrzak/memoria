@@ -32,8 +32,9 @@ import qualified Network.Wai.Handler.Warp
 import qualified Web.Cookie
 import qualified Web.Scotty.Cookie
 import qualified Web.Scotty.Trans as ST
+import Data.IORef (IORef, newIORef, readIORef)
 
-import Memoria.Common (HasParams(getParam), HasRedirects, HasRequestMethod, getRequestMethod)
+import Memoria.Common (HasParams(getParam), HasRedirects, HasRequestMethod, SysStats(..), getRequestMethod)
 import Memoria.Cookies (HasCookies(getCookie, setCookie))
 import Memoria.Page.Auth (handleAuth)
 import Memoria.Page.CreateAccount (handleCreateAccount)
@@ -57,7 +58,8 @@ import qualified Memoria.Db as Memoria.Db
 import qualified Memoria.Timers
 
 data State = State { stateCookies :: Maybe (Data.Map.Lazy.Map Text Text)
-                   , stateDbPool :: Pool PSQL.Connection }
+                   , stateDbPool :: Pool PSQL.Connection
+                   , stateSysStatsRef :: IORef SysStats }
 
 newtype StateM a = StateM
   { runStateM :: StateT State IO a
@@ -128,6 +130,8 @@ instance Memoria.Common.HasCsrfToken (ST.ActionT Text StateM) where
         sessionKey <- ensureSession
         Memoria.Db.ensureCsrfToken sessionKey
 
+instance Memoria.Common.HasFooterStats (ST.ActionT Text StateM)
+
 instance HasParams (ST.ActionT Text StateM) where
     getParam name = do
         params <- ST.params
@@ -197,6 +201,12 @@ instance HasSessions (ST.ActionT Text StateM) where
                     setCookie sessionIdCookieName key
                     pure key
 
+instance Memoria.Common.HasSysStats (ST.ActionT Text StateM) where
+    getSysStats = do
+        state <- lift $ get
+        let statsRef = stateSysStatsRef state
+        sysStats <- liftIO $ readIORef statsRef
+        pure sysStats
 
 instance Memoria.Db.HasDbConn (ST.ActionT Text StateM) where
     getConnection = do
@@ -258,14 +268,17 @@ loadConf = Memoria.Conf.load
 
 main :: Memoria.Conf.Conf -> IO ()
 main conf = do
+    sysStatsRef <- newIORef def
     pool <- Memoria.Db.createDbPool
         (Memoria.Conf.cfgDbHost conf)
         (Memoria.Conf.cfgDbPort conf)
         (Memoria.Conf.cfgDbName conf)
         (Memoria.Conf.cfgDbUser conf)
         (Memoria.Conf.cfgDbPass conf)
-    Memoria.Timers.startTimer pool
-    let state = State { stateCookies = Nothing, stateDbPool = pool }
+    Memoria.Timers.startTimers pool sysStatsRef
+    let state = State { stateCookies = Nothing
+                      , stateDbPool = pool
+                      , stateSysStatsRef = sysStatsRef }
     let runIO m = do
             (result, _) <- runStateT (runStateM m) state
             pure result
