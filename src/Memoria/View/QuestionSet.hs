@@ -12,6 +12,7 @@ import Data.Text.Lazy (Text)
 import Formatting (format, fixed)
 import Prelude hiding (id)
 import Text.Blaze.XHtml1.Strict ((!))
+import qualified Data.List
 import qualified Data.Text.Lazy
 import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
@@ -33,6 +34,7 @@ data Question = Question { qId :: Text
 
 renderQuestionSet :: FooterStats -> QuestionSet -> [Question] -> Text
 renderQuestionSet footerStats questionSet questions = do
+    let averageScore = Data.List.sum (map qScore questions) / (fromIntegral (Data.List.length questions))
     let content = H.div $ do
             H.p $ do
                 "Question set: "
@@ -42,6 +44,10 @@ renderQuestionSet footerStats questionSet questions = do
                 H.toHtml $ qsCreatedAt questionSet
                 ", modfiied: "
                 H.toHtml $ qsModifiedAt questionSet
+                "."
+                H.br
+                "Average score: "
+                H.toHtml $ format (fixed 2) averageScore
                 "."
             H.div $ do
                 "["
