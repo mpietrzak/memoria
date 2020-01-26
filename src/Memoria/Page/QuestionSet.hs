@@ -35,5 +35,6 @@ handleQuestionSet = do
         dbQuestionToView dbq = V.Question { V.qId = DB.qId dbq
                                           , V.qQuestion = DB.qQuestion dbq
                                           , V.qAnswer = DB.qAnswer dbq
+                                          , V.qScore = DB.qScore dbq
                                           , V.qCreatedAt = DB.qCreatedAt dbq
                                           , V.qModifiedAt = DB.qModifiedAt dbq }

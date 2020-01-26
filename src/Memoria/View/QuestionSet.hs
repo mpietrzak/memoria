@@ -7,10 +7,12 @@ module Memoria.View.QuestionSet (
     renderQuestionSet
 ) where
 
-import Prelude hiding (id)
-import Data.Text.Lazy (Text)
-import Text.Blaze.XHtml1.Strict ((!))
 import Data.Foldable (for_)
+import Data.Text.Lazy (Text)
+import Formatting (format, fixed)
+import Prelude hiding (id)
+import Text.Blaze.XHtml1.Strict ((!))
+import qualified Data.Text.Lazy
 import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
@@ -25,6 +27,7 @@ data QuestionSet = QuestionSet { qsId :: Text
 data Question = Question { qId :: Text
                          , qQuestion :: Text
                          , qAnswer :: Text
+                         , qScore :: Double
                          , qCreatedAt :: Text
                          , qModifiedAt :: Text }
 
@@ -46,17 +49,17 @@ renderQuestionSet footerStats questionSet questions = do
                 "]"
             H.table $ do
                 H.thead $ H.tr $ do
-                    H.th "id"
                     H.th "question"
                     H.th "answer"
+                    H.th "score"
                     H.th "created"
                     H.th "modified"
                 H.tbody $ for_ questions $ \q -> H.tr $ do
-                    H.td $ H.toHtml (qId q)
                     H.td $ H.toHtml (qQuestion q)
                     H.td $ H.toHtml (qAnswer q)
-                    H.td $ H.toHtml (qCreatedAt q)
-                    H.td $ H.toHtml (qModifiedAt q)
+                    H.td $ H.toHtml (format (fixed 2) (qScore q))
+                    H.td $ H.toHtml (Data.Text.Lazy.take 19 (qCreatedAt q))
+                    H.td $ H.toHtml (Data.Text.Lazy.take 19 (qModifiedAt q))
                     H.td $ do
                         "["
                         H.a

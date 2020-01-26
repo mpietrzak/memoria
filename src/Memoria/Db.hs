@@ -610,12 +610,13 @@ getQuestionSetQuestions owner id = withConnection $ \conn -> do
         rows <- liftIO $ HDBC.quickQuery conn sql params
         pure $ map rowToQuestion rows
     where
-        params = [ HDBC.toSql owner, HDBC.toSql id ]
+        params = [ HDBC.toSql owner, HDBC.toSql owner, HDBC.toSql id ]
         rowToQuestion row = case row of
-            [id, question, answer, createdAt, modifiedAt] -> Question
+            [id, question, answer, createdAt, modifiedAt, score] -> Question
                 { qId = HDBC.fromSql id
                 , qQuestion = HDBC.fromSql question
                 , qAnswer = HDBC.fromSql answer
+                , qScore = HDBC.fromSql score
                 , qCreatedAt = HDBC.fromSql createdAt
                 , qModifiedAt = HDBC.fromSql modifiedAt }
             _ -> error "Can't convert a row to Question: invalid number of columns"
@@ -625,7 +626,41 @@ getQuestionSetQuestions owner id = withConnection $ \conn -> do
                     question,
                     answer,
                     created_at,
-                    modified_at
+                    modified_at,
+                    coalesce(
+                        (
+                            select
+                                (
+                                    avg(
+                                        case is_correct
+                                            when true then 1.0
+                                            else 0.0
+                                        end
+                                    )
+                                *
+                                    (
+                                        case
+                                            when count(*) <= 5 then count(*) / 5.0
+                                            else 1.0
+                                        end
+                                    )
+                                ) as score
+                            from
+                                (
+                                    select
+                                        is_correct
+                                    from
+                                        question_answer
+                                    where
+                                        -- question.id from outer select
+                                        question_answer.question = question.id
+                                        and account = ?
+                                    order by answered_at desc
+                                    limit 100
+                                ) as last_answer
+                        ),
+                        0
+                    ) as score
                 from
                     question
                 where

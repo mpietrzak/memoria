@@ -81,6 +81,7 @@ handleSettingsAddEmail = do
                         pure "")
             else
                 pure $ V.renderSettingsAddEmail footerStats formData
+        _ -> error "Unsupported method"
     where
         processFormData = processFormDataGo True def
         processFormDataGo isFormValid formData fields = case fields of
