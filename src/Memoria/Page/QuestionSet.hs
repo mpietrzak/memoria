@@ -8,13 +8,11 @@ where
 import Prelude hiding (id)
 import Data.Text.Lazy (Text)
 
-import Memoria.View.QuestionSet (QuestionSet(..), renderQuestionSet)
 import qualified Memoria.Common
-import qualified Memoria.Db
 import qualified Memoria.Db as DB
 import qualified Memoria.View.QuestionSet as V
 
-handleQuestionSet :: (Monad m, Memoria.Common.HasAccounts m, Memoria.Db.HasDb m, Memoria.Common.HasFooterStats m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m) => m Text
+handleQuestionSet :: (Monad m, DB.HasDb m, Memoria.Common.HasAccounts m, Memoria.Common.HasFooterStats m, Memoria.Common.HasParams m, Memoria.Common.HasRedirects m) => m Text
 handleQuestionSet = do
     mAccountId <- Memoria.Common.getAccountId
     case mAccountId of
@@ -24,15 +22,16 @@ handleQuestionSet = do
             (questionSetId :: Text) <- Memoria.Common.getParam "id" >>= \case
                 Nothing -> error "Missing id param"
                 Just id -> pure id
-            dbQuestionSet <- Memoria.Db.getQuestionSet accId questionSetId
+            dbQuestionSet <- DB.getQuestionSet accId questionSetId
             let viewQuestionSet = dbQuestionSetToView dbQuestionSet
-            dbQuestions <- Memoria.Db.getQuestionSetQuestions accId questionSetId
+            dbQuestions <- DB.getQuestionSetQuestions accId questionSetId
             let viewQuestions = map dbQuestionToView dbQuestions
-
-            pure $ renderQuestionSet footerStats viewQuestionSet viewQuestions
+            pure $ V.renderQuestionSet footerStats viewQuestionSet viewQuestions
     where
-        dbQuestionSetToView dbqs = QuestionSet { id = Memoria.Db.qsId dbqs
-                                               , name = Memoria.Db.qsName dbqs }
+        dbQuestionSetToView dbqs = V.QuestionSet { V.qsId = DB.qsId dbqs
+                                                 , V.qsName = DB.qsName dbqs
+                                                 , V.qsCreatedAt = DB.qsCreatedAt dbqs
+                                                 , V.qsModifiedAt = DB.qsModifiedAt dbqs }
         dbQuestionToView dbq = V.Question { V.qId = DB.qId dbq
                                           , V.qQuestion = DB.qQuestion dbq
                                           , V.qAnswer = DB.qAnswer dbq

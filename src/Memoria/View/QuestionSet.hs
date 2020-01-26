@@ -17,7 +17,10 @@ import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 import Memoria.View.Base (FooterStats)
 import qualified Memoria.View.Base
 
-data QuestionSet = QuestionSet { id :: Text, name :: Text }
+data QuestionSet = QuestionSet { qsId :: Text
+                               , qsName :: Text
+                               , qsCreatedAt :: Text
+                               , qsModifiedAt :: Text }
 
 data Question = Question { qId :: Text
                          , qQuestion :: Text
@@ -28,9 +31,15 @@ data Question = Question { qId :: Text
 renderQuestionSet :: FooterStats -> QuestionSet -> [Question] -> Text
 renderQuestionSet footerStats questionSet questions = do
     let content = H.div $ do
-            H.div $ do
+            H.p $ do
                 "Question set: "
-                H.toHtml $ name questionSet
+                H.toHtml $ qsName questionSet
+                H.br
+                "Created: "
+                H.toHtml $ qsCreatedAt questionSet
+                ", modfiied: "
+                H.toHtml $ qsModifiedAt questionSet
+                "."
             H.div $ do
                 "["
                 H.a ! A.href addQuestionHref $ "Add question"
@@ -56,4 +65,5 @@ renderQuestionSet footerStats questionSet questions = do
                         "]"
     Memoria.View.Base.render footerStats content
     where
-        addQuestionHref = H.toValue $ "create-question?question-set=" <> id questionSet
+        addQuestionHref = H.toValue $ "create-question?question-set=" <> qsId questionSet
+

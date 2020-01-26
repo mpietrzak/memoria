@@ -69,7 +69,10 @@ data Answer = Answer { ansId :: Text
                      , ansCreatedAt :: Text
                      , ansModifiedAt :: Text }
 
-data QuestionSet = QuestionSet { qsId :: Text, qsName :: Text }
+data QuestionSet = QuestionSet { qsId :: Text
+                               , qsName :: Text
+                               , qsCreatedAt :: Text
+                               , qsModifiedAt :: Text }
 
 data Question = Question { qId :: Text
                          , qQuestion :: Text
@@ -588,11 +591,14 @@ getQuestionSet owner id = withConnection $ \conn -> do
             _ -> error "Invalid number of rows returned from DB"
     where
         rowToQuestionSet row = case row of
-            [sqlId, sqlName] -> QuestionSet { qsId = HDBC.fromSql sqlId
-                                            , qsName = HDBC.fromSql sqlName }
+            [sqlId, sqlName, sqlCreatedAt, sqlModifiedAt] ->
+                QuestionSet { qsId = HDBC.fromSql sqlId
+                            , qsName = HDBC.fromSql sqlName
+                            , qsCreatedAt = HDBC.fromSql sqlCreatedAt
+                            , qsModifiedAt = HDBC.fromSql sqlModifiedAt }
             _ -> error "Invalid number of columns"
         sql = [r|
-            select id, name
+            select id, name, created_at, modified_at
             from question_set
             where
                 owner = ?

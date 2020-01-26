@@ -20,7 +20,8 @@ data FooterStats = FooterStats {
 css :: Text
 css = [r|
         body {
-            font-family: sans-serif;
+            font-family: "Helvetica Neue", "Helvetica", "Roboto", sans-serif;
+            font-size: 12pt;
         }
 
         div.menu {
@@ -44,14 +45,16 @@ css = [r|
 footer :: FooterStats -> H.Html
 footer stats = H.div ! A.class_ "footer" $ H.p $ do
     case fDatabaseSize stats of
-        Just dbSize -> H.p $ do
+        Just dbSize -> do
             "Database size: "
             H.toHtml $ humanByteSize dbSize
+            H.br
         Nothing -> ""
     case fResidentSetSize stats of
-        Just rss -> H.p $ do
+        Just rss -> do
             "Resident set size: "
             H.toHtml $ humanByteSize rss
+            H.br
         Nothing -> ""
 
 menu :: H.Html
