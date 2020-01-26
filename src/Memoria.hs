@@ -40,6 +40,7 @@ import Memoria.Page.Auth (handleAuth)
 import Memoria.Page.CreateAccount (handleCreateAccount)
 import Memoria.Page.CreateQuestion (handleCreateQuestion)
 import Memoria.Page.CreateQuestionSet (handleCreateQuestionSet)
+import Memoria.Page.DeleteQuestionSet (handleDeleteQuestionSet)
 import Memoria.Page.EditAnswer (handleEditAnswer)
 import Memoria.Page.Export (handleExport, handleExportQuestions)
 import Memoria.Page.Index (handleIndex)
@@ -227,6 +228,7 @@ application = do
     ST.get "/create-account" $ withSetCookies handleCreateAccount >>= ST.html
     ST.get "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.get "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
+    ST.get "/delete-question-set" $ withSetCookies handleDeleteQuestionSet >>= ST.html
     ST.get "/edit-answer" $ withSetCookies handleEditAnswer >>= ST.html
     ST.get "/export" $ withSetCookies handleExport >>= ST.html
     ST.get "/login" $ withSetCookies handleLogin >>= ST.html
@@ -240,6 +242,7 @@ application = do
     ST.post "/answer" $ withSetCookies handleTestAnswer >>= ST.html
     ST.post "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
     ST.post "/create-question-set" $ withSetCookies handleCreateQuestionSet >>= ST.html
+    ST.post "/delete-question-set" $ withSetCookies handleDeleteQuestionSet >>= ST.html
     ST.post "/edit-answer" $ withSetCookies handleEditAnswer >>= ST.html
     ST.post "/login" $ withSetCookies handleLogin >>= ST.html
     ST.post "/settings-add-email" $ withSetCookies handleSettingsAddEmail >>= ST.html

@@ -29,7 +29,8 @@ module Memoria.Db (
     getQuestionSetQuestions,
     getQuestionSetsForAccount,
     getRandomQuestion,
-    sessionExists
+    sessionExists,
+    setQuestionSetDeleted
 ) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -161,6 +162,7 @@ class HasDbConn m => HasDb m where
                     question_set
                 where
                     owner = ?
+                    and (is_deleted = false or is_deleted is null)
             |]
         withConnection $ \conn -> do
             rows <- liftIO $ HDBC.quickQuery conn sql [HDBC.toSql accountId]
@@ -730,7 +732,9 @@ getRandomQuestion accId = do
                                     and question_set in (
                                         select id
                                         from question_set
-                                        where owner = ?
+                                        where
+                                            owner = ?
+                                            and (is_deleted = false or is_deleted is null)
                                     )
                                 order by id
                             )
@@ -743,7 +747,9 @@ getRandomQuestion accId = do
                                     and question_set in (
                                         select id
                                         from question_set
-                                        where owner = ?
+                                        where
+                                            owner = ?
+                                            and (is_deleted = false or is_deleted is null)
                                     )
                                 order by id
                             )
@@ -879,3 +885,19 @@ sessionExists sessionKey = withConnection $ \conn -> do
                     liftIO $ fprint ("sessionExists: Unexpected type: " % shown % "\n") v
                     pure True
             _ -> pure False
+
+setQuestionSetDeleted :: (MonadIO m, HasDbConn m) => Text -> Text -> m ()
+setQuestionSetDeleted owner questionSetId = do
+    withConnection $ \conn -> do
+        let params = [HDBC.toSql owner, HDBC.toSql questionSetId]
+        liftIO $ HDBC.run conn sql params
+        liftIO $ HDBC.commit conn
+    pure ()
+    where
+        sql = [r|
+                update question_set set is_deleted = true, deleted_at = current_timestamp
+                where
+                    owner = ?
+                    and id = ?
+            |]
+

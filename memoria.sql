@@ -40,6 +40,8 @@ create table question_set (
     id varchar(128) not null primary key,
     name varchar(128) not null,
     owner varchar(128) not null references account,
+    is_deleted boolean,
+    deleted_at timestamp,
     created_at timestamp not null,
     modified_at timestamp not null
 );

@@ -53,6 +53,10 @@ renderQuestionSet footerStats questionSet questions = do
                 "["
                 H.a ! A.href addQuestionHref $ "Add question"
                 "]"
+                " "
+                "["
+                H.a ! A.href deleteQuestionSetHref $ "Delete question set"
+                "]"
             H.table $ do
                 H.thead $ H.tr $ do
                     H.th "question"
@@ -75,4 +79,5 @@ renderQuestionSet footerStats questionSet questions = do
     Memoria.View.Base.render footerStats content
     where
         addQuestionHref = H.toValue $ "create-question?question-set=" <> qsId questionSet
+        deleteQuestionSetHref = H.toValue $ "delete-question-set?question-set=" <> qsId questionSet
 
