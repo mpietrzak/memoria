@@ -184,10 +184,6 @@ class HasDbConn m => HasDb m where
                 _ -> error "Invalid type"
 
     getSessionValue sessionKey name = do
-        liftIO $ fprint
-            ("getSessionValue: Querying session '" % text % "' for '" % text % "'\n")
-            sessionKey
-            name
         let sql = [r|
                 select value
                 from
