@@ -29,6 +29,8 @@ module Memoria.Db (
     getQuestionSetQuestions,
     getQuestionSetsForAccount,
     getRandomQuestion,
+    getSubscribedQuestionSetsForAccount,
+    searchQuestionSets,
     sessionExists,
     setQuestionSetDeleted
 ) where
@@ -72,6 +74,7 @@ data Answer = Answer { ansId :: Text
 
 data QuestionSet = QuestionSet { qsId :: Text
                                , qsName :: Text
+                               , qsOwner :: Text
                                , qsCreatedAt :: Text
                                , qsModifiedAt :: Text }
 
@@ -157,7 +160,10 @@ class HasDbConn m => HasDb m where
         let sql = [r|
                 select
                     id,
-                    name
+                    name,
+                    owner,
+                    created_at,
+                    modified_at
                 from
                     question_set
                 where
@@ -169,11 +175,13 @@ class HasDbConn m => HasDb m where
             pure $ map rowToQuestionSet rows
         where
             rowToQuestionSet row = case row of
-                [HDBC.SqlByteString id, HDBC.SqlByteString name] ->
-                   QuestionSet { qsId = bsToText id, qsName = bsToText name }
+                [id, name, owner, createdAt, modifiedAt] ->
+                   QuestionSet { qsId = HDBC.fromSql id
+                               , qsName = HDBC.fromSql name
+                               , qsOwner = HDBC.fromSql owner
+                               , qsCreatedAt = HDBC.fromSql createdAt
+                               , qsModifiedAt = HDBC.fromSql modifiedAt }
                 _ -> error "Invalid type"
-            bsToText = Data.Text.Lazy.Encoding.decodeUtf8With Data.Text.Encoding.Error.lenientDecode
-                . Data.ByteString.Lazy.fromStrict
 
     getSessionValue sessionKey name = do
         liftIO $ fprint
@@ -800,6 +808,33 @@ getRandomQuestion accId = do
                     join question as q on (q.id = r.id)
             |]
 
+getSubscribedQuestionSetsForAccount :: HasDbConn m => Text -> m [QuestionSet]
+getSubscribedQuestionSetsForAccount accId = do
+    withConnection $ \conn -> do
+        let params = [ HDBC.toSql accId ]
+        rows <- liftIO $ HDBC.quickQuery conn sql params
+        pure $ map rowToQuestionSet rows
+    where
+        rowToQuestionSet = \case
+            [id, name, owner, createdAt, modifiedAt] ->
+                QuestionSet { qsId = HDBC.fromSql id
+                            , qsName = HDBC.fromSql name
+                            , qsOwner = HDBC.fromSql owner
+                            , qsCreatedAt = HDBC.fromSql createdAt
+                            , qsModifiedAt = HDBC.fromSql modifiedAt }
+            _ -> error "Invaild number of columns"
+        sql = [r|
+                select
+                    id, name, owner, created_at, modified_at
+                from
+                    question_set
+                where
+                    id in (select question_set from question_set_subscription where account = ?)
+                    and (is_deleted = false or is_deleted is null)
+                order by
+                    id
+            |]
+
 deleteSessionValue :: HasDbConn m => Text -> Text -> m ()
 deleteSessionValue sessionKey name = withConnection $ \conn -> do
         let params = [ HDBC.toSql sessionKey, HDBC.toSql name ]
@@ -867,6 +902,41 @@ ensureCsrfToken sessionKey = do
 newId :: (MonadIO m) => m Text
 newId = liftIO $ Data.UUID.V4.nextRandom
     >>= \uuid -> pure $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
+
+searchQuestionSets :: (HasDbConn m, MonadIO m) => Text -> Text -> m [QuestionSet]
+searchQuestionSets accId query = do
+    withConnection $ \conn -> do
+        let params = [HDBC.toSql accId, HDBC.toSql accId, HDBC.toSql query]
+        rows <- liftIO $ HDBC.quickQuery conn sql params
+        pure $ map rowToSearchResult rows
+    where
+        rowToSearchResult = \case
+            [id, name, owner, createdAt, modifiedAt] ->
+                QuestionSet { qsId = HDBC.fromSql id
+                            , qsName = HDBC.fromSql name
+                            , qsOwner = HDBC.fromSql owner
+                            , qsCreatedAt = HDBC.fromSql createdAt
+                            , qsModifiedAt = HDBC.fromSql modifiedAt }
+            _ -> error "Invalid column count"
+        sql = [r|
+                select
+                    id,
+                    name,
+                    owner,
+                    created_at,
+                    modified_at
+                from
+                    question_set
+                where
+                    owner != ?
+                    and id not in (
+                        select question_set from question_set_subscription
+                        where account = ?
+                    )
+                    and name like '%' || ? || '%'
+                order by
+                    created_at desc
+            |]
 
 sessionExists :: (Monad m, HasDb m) => Text -> m Bool
 sessionExists sessionKey = withConnection $ \conn -> do

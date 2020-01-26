@@ -113,3 +113,17 @@ create index question_answer_modified_i on question_answer (modified_at);
 create index question_answer_qccount_question_answered_i
 on question_answer (account, question, answered_at);
 
+
+create table question_set_subscription (
+    id varchar(128) not null primary key,
+    question_set varchar(128) not null references question_set,
+    account varchar(128) not null references account,
+    subscribed boolean,
+    created_at timestamp not null,
+    modified_at timestamp not null
+);
+
+create index question_set_subscription_account_i on question_set_subscription (account);
+create index question_set_subscription_created_i on question_set_subscription (created_at);
+create index question_set_subscription_modified_i on question_set_subscription (modified_at);
+

@@ -47,6 +47,7 @@ import Memoria.Page.Login (handleLogin)
 import Memoria.Page.Logout (handleLogout)
 import Memoria.Page.QuestionAnswers (handleQuestionAnswers)
 import Memoria.Page.QuestionSet (handleQuestionSet)
+import Memoria.Page.Search (handleSearch)
 import Memoria.Page.Settings (handleSettings)
 import Memoria.Page.Settings (handleSettingsAddEmail)
 import Memoria.Page.Test (handleTest)
@@ -219,6 +220,7 @@ application = do
     ST.get "/logout" $ withSetCookies handleLogout >>= ST.html
     ST.get "/question-answers" $ withSetCookies handleQuestionAnswers >>= ST.html
     ST.get "/question-set" $ withSetCookies handleQuestionSet >>= ST.html
+    ST.get "/question-set-search" $ withSetCookies handleSearch >>= ST.html
     ST.get "/settings" $ withSetCookies handleSettings >>= ST.html
     ST.get "/settings-add-email" $ withSetCookies handleSettingsAddEmail >>= ST.html
     ST.get "/test" $ withSetCookies handleTest >>= ST.html

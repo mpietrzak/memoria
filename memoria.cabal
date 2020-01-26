@@ -62,6 +62,7 @@ library
                  , Memoria.Page.Logout
                  , Memoria.Page.QuestionAnswers
                  , Memoria.Page.QuestionSet
+                 , Memoria.Page.Search
                  , Memoria.Page.Settings
                  , Memoria.Page.Test
                  , Memoria.Sessions
@@ -78,6 +79,7 @@ library
                  , Memoria.View.Login
                  , Memoria.View.QuestionAnswers
                  , Memoria.View.QuestionSet
+                 , Memoria.View.Search
                  , Memoria.View.Settings
                  , Memoria.View.Test
                  , Memoria.View.Unauthenticated

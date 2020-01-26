@@ -18,16 +18,39 @@ import qualified Memoria.View.Base
 
 data QuestionSet = QuestionSet { id :: Text, name :: Text }
 
-renderIndex :: FooterStats -> [QuestionSet] -> Text
-renderIndex footerStats questionSets = do
+renderIndex :: FooterStats -> [QuestionSet] -> [QuestionSet] -> Text
+renderIndex footerStats questionSets subscribedQuestionSets = do
     let content = H.div ! A.class_ "content" $ do
-            H.ul $ for_ questionSets $ \questionSet -> H.li
+            H.div $ do
+                H.p "Search existing question sets:"
+                H.form
+                    ! A.method "get"
+                    ! A.action "question-set-search"
+                    $ do
+                        H.input ! A.type_ "text" ! A.name "q"
+                        H.button ! A.type_ "submit" $ "Search"
+            H.p "Owned question sets:"
+            case questionSets of
+                [] -> H.p $ do
+                    "You don't own question sets yet..."
+                    " "
+                    "["
+                    H.a ! A.href "create-question-set" $ "Create one"
+                    "]"
+                _ -> H.ul $ for_ questionSets questionSetLi
+            H.p "Subscribed question sets:"
+            case subscribedQuestionSets of
+                [] -> H.p "You don't subscribe question sets yet..."
+                _ -> do
+                    H.ul $ for_ subscribedQuestionSets questionSetLi
+
+    Memoria.View.Base.render footerStats content
+    where
+        questionSetLink _id = H.toValue $ "question-set?id=" <> _id
+        questionSetLi questionSet = H.li
                 $ H.a ! A.href (questionSetLink (id questionSet))
                 $ H.toHtml
                 $ case Data.Text.Lazy.strip (name questionSet) of
                       "" -> "(unnamed)"
                       _ -> (name questionSet)
-    Memoria.View.Base.render footerStats content
-    where
-        questionSetLink _id = H.toValue $ "question-set?id=" <> _id
 
