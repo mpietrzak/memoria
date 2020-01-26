@@ -34,7 +34,10 @@ data Question = Question { qId :: Text
 
 renderQuestionSet :: FooterStats -> QuestionSet -> [Question] -> Text
 renderQuestionSet footerStats questionSet questions = do
-    let averageScore = Data.List.sum (map qScore questions) / (fromIntegral (Data.List.length questions))
+    let questionCount = Data.List.length questions
+    let averageScore = case questionCount of
+            0 -> 0.0
+            _ -> Data.List.sum (map qScore questions) / (fromIntegral questionCount)
     let content = H.div $ do
             H.p $ do
                 "Question set: "
