@@ -195,8 +195,6 @@ instance Memoria.Common.HasSysStats (ST.ActionT Text StateM) where
         pure sysStats
 
 instance Memoria.Db.HasDbConn (ST.ActionT Text StateM) where
-    getConnection = do
-        error "not implemented yet"
     withConnection action = do
         state <- lift $ get
         let pool = stateDbPool state

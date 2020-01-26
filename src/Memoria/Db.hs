@@ -4,7 +4,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 
 module Memoria.Db (
-    HasDbConn(getConnection, withConnection),
+    HasDbConn(withConnection),
     HasDb(createAccount, createSession, getDbSize, getSessionValue, setSessionValue),
     Account(..),
     AccountEmail(..),
@@ -88,7 +88,6 @@ data Question = Question { qId :: Text
     deriving Show
 
 class MonadIO m => HasDbConn m where
-    getConnection :: m (PSQL.Connection)
     withConnection :: (PSQL.Connection -> m b) -> m b
 
 class HasDbConn m => HasDb m where
