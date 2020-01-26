@@ -19,7 +19,6 @@ import Data.Default.Class (def)
 import Data.Foldable (for_)
 import Data.Pool (Pool, withResource)
 import Data.Text.Lazy (Text)
-import Formatting ((%), fprint, shown, text)
 import qualified Data.ByteString.Lazy
 import qualified Data.Map.Lazy
 import qualified Data.Text.Lazy
@@ -93,8 +92,6 @@ instance HasCookies (ST.ActionT Text StateM) where
                         Nothing -> pure Nothing
             Nothing -> do
                 -- Cookies not found (yet) in state.
-                liftIO $ fprint
-                    ("getCookie: Cookies not yet in state\n")
                 mReqCookie <- Web.Scotty.Cookie.getCookie (Data.Text.Lazy.toStrict cookieName)
                 case mReqCookie of
                     Just reqCookieStrict -> do
@@ -106,18 +103,11 @@ instance HasCookies (ST.ActionT Text StateM) where
                         pure $ Just reqCookie
                     Nothing -> pure Nothing
     setCookie cookieName cookieValue = do
-        liftIO $ fprint
-            ("setCookie: About to put cookie (" % text % " -> " % text % ") into state\n")
-            cookieName
-            cookieValue
         state <- lift get
         let cookies = case stateCookies state of
                 Nothing -> Data.Map.Lazy.empty
                 Just c -> c
         let cookies' = Data.Map.Lazy.insert cookieName cookieValue cookies
-        liftIO $ fprint
-            ("setCookie: Saving cookies in state: " % shown % "\n")
-            cookies'
         let state' = state { stateCookies = Just cookies' }
         lift $ put state'
 
@@ -165,15 +155,11 @@ instance HasSessions (ST.ActionT Text StateM) where
         return $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
     getSessionValue name = do
         mSessionKey <- getCookie sessionIdCookieName
-        liftIO $ fprint ("getSessionValue: mSessionKey: " % shown % "\n") mSessionKey
         case mSessionKey of
           Nothing -> pure Nothing
           Just sessionKey -> Memoria.Db.getSessionValue sessionKey name
     setSessionValue name value = do
         sessionKey <- ensureSession
-        liftIO $ fprint
-            ("setSessionValue: Ensured session with key: " % text % "\n")
-            sessionKey
         _ <- Memoria.Db.setSessionValue sessionKey name value
         pure ()
     ensureSession = do
@@ -193,9 +179,6 @@ instance HasSessions (ST.ActionT Text StateM) where
                 True -> do
                     -- Cookie exists, session exists, but we should probably
                     -- poke it a little bit (todo).
-                    liftIO $ fprint
-                        ("setSessionValue: Session for " % text % " exists\n")
-                        cookieSessionKey
                     pure cookieSessionKey
                 False -> do
                     key <- createSession
@@ -254,12 +237,8 @@ application = do
         ST.raw exportJson
     where
         withSetCookies a = do
-            liftIO $ fprint ("application.withSetCookies: Running action\n")
             r <- a
             state <- lift get
-            liftIO $ fprint
-                ("application.withSetCookies: State cookies after action: " % shown % "\n")
-                (stateCookies state)
             case stateCookies state of
                 Nothing -> pure r
                 Just cookies -> do
@@ -292,15 +271,11 @@ main conf = do
 
 setResponseCookies :: (Monad m, MonadIO m, ST.ScottyError e) => [(Text, Text)] -> ST.ActionT e m ()
 setResponseCookies cookies = for_ cookies $ \(k,v) -> do
-        liftIO $ fprint
-            ("setResponseCookies: Setting response cookie '" % text % "' -> '" % text % "'\n")
-            k
-            v
-        let cookieMaxAge = fromInteger (3600 * 24 * 30 * 12)
-        let toStrictBS = Data.ByteString.Lazy.toStrict
-                . Data.Text.Lazy.Encoding.encodeUtf8
-        let cookie = def { Web.Cookie.setCookieName = toStrictBS k
-                         , Web.Cookie.setCookieValue = toStrictBS v
-                         , Web.Cookie.setCookieMaxAge = (Just cookieMaxAge) }
-        Web.Scotty.Cookie.setCookie cookie
+    let cookieMaxAge = fromInteger (3600 * 24 * 30 * 12)
+    let toStrictBS = Data.ByteString.Lazy.toStrict
+            . Data.Text.Lazy.Encoding.encodeUtf8
+    let cookie = def { Web.Cookie.setCookieName = toStrictBS k
+                     , Web.Cookie.setCookieValue = toStrictBS v
+                     , Web.Cookie.setCookieMaxAge = (Just cookieMaxAge) }
+    Web.Scotty.Cookie.setCookie cookie
 
