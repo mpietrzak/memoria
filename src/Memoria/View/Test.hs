@@ -10,6 +10,7 @@ import Data.Text.Lazy (Text)
 import Text.Blaze.XHtml1.Strict ((!))
 import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
+import qualified Text.Blaze
 
 import Memoria.View.Base (FooterStats)
 import qualified Memoria.View.Base
@@ -31,12 +32,19 @@ renderTest footerStats question = do
                     ! A.action "answer"
                     ! A.method "post"
                     $ do
-                        H.input ! A.name "answer" ! A.type_ "text"
-                        H.input
-                            ! A.name "question"
-                            ! A.type_ "hidden"
-                            ! A.value (H.toValue (qId question))
-                        H.button ! A.type_ "submit" $ "Ok"
+                        H.table $ H.tbody $ do
+                            H.tr $ H.td $ H.textarea
+                                ! A.name "answer"
+                                ! A.cols "60"
+                                ! A.rows "5"
+                                ! Text.Blaze.customAttribute "autocomplete" "off"
+                                $ ""
+                            H.tr $ H.td ! A.align "right" $ do
+                                H.input
+                                    ! A.name "question"
+                                    ! A.type_ "hidden"
+                                    ! A.value (H.toValue (qId question))
+                                H.button ! A.type_ "submit" $ "Ok"
     Memoria.View.Base.render footerStats content
 
 renderTestAnswer :: FooterStats -> (Text, Text) -> Question -> Bool -> Text
