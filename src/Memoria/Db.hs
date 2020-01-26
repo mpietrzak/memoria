@@ -26,6 +26,7 @@ module Memoria.Db (
     getAnswers,
     getQuestionById,
     getQuestionSet,
+    getQuestionSetById,
     getQuestionSetQuestions,
     getQuestionSetsForAccount,
     getRandomQuestion,
@@ -597,19 +598,40 @@ getQuestionSet owner id = withConnection $ \conn -> do
             _ -> error "Invalid number of rows returned from DB"
     where
         rowToQuestionSet row = case row of
-            [sqlId, sqlName, sqlCreatedAt, sqlModifiedAt] ->
+            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt] ->
                 QuestionSet { qsId = HDBC.fromSql sqlId
                             , qsName = HDBC.fromSql sqlName
+                            , qsOwner = HDBC.fromSql sqlOwner
                             , qsCreatedAt = HDBC.fromSql sqlCreatedAt
                             , qsModifiedAt = HDBC.fromSql sqlModifiedAt }
             _ -> error "Invalid number of columns"
         sql = [r|
-            select id, name, created_at, modified_at
+            select id, name, owner, created_at, modified_at
             from question_set
-            where
-                owner = ?
-                and id = ?
+            where owner = ?  and id = ?
         |]
+
+getQuestionSetById :: (HasDbConn m, MonadIO m) => Text -> m QuestionSet
+getQuestionSetById questionSetId = withConnection $ \conn -> do
+        rows <- liftIO $ HDBC.quickQuery conn sql [HDBC.toSql questionSetId]
+        case rows of
+            [row] -> pure $ rowToQuestionSet row
+            _ -> error "Invalid number of rows returned from DB"
+    where
+        rowToQuestionSet row = case row of
+            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt] ->
+                QuestionSet { qsId = HDBC.fromSql sqlId
+                            , qsName = HDBC.fromSql sqlName
+                            , qsOwner = HDBC.fromSql sqlOwner
+                            , qsCreatedAt = HDBC.fromSql sqlCreatedAt
+                            , qsModifiedAt = HDBC.fromSql sqlModifiedAt }
+            _ -> error "Invalid number of columns"
+        sql = [r|
+            select id, name, owner, created_at, modified_at
+            from question_set
+            where id = ?
+        |]
+
 
 getQuestionSetQuestions :: (HasDbConn m) => Text -> Text -> m [Question]
 getQuestionSetQuestions owner id = withConnection $ \conn -> do
