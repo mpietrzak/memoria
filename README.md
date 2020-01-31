@@ -12,3 +12,5 @@ Memoria is written in Haskell and is a learning project.
 Memoria is an open source software licensed under Apache License 2.0, see the
 LICENSE file for details.
 
+This is not an officially supported Google product.
+
