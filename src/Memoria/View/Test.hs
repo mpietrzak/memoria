@@ -46,7 +46,7 @@ renderTest footerStats question = do
                     ! A.action "answer"
                     ! A.method "post"
                     $ do
-                        H.table $ H.tbody $ do
+                        H.table ! A.class_ "form" $ H.tbody $ do
                             H.tr $ H.td $ H.textarea
                                 ! A.name "answer"
                                 ! A.class_ "answer"

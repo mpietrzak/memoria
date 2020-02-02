@@ -40,11 +40,13 @@ css = [r|
         body {
             font-family: "Helvetica Neue", "Helvetica", "Roboto", sans-serif;
             font-size: 12pt;
+            margin: 0;
+            padding: 10px;
         }
 
         div.menu {
-            margin-bottom: 10px;
-            margin-top: 10px;
+            margin: 0;
+            padding: 0;
         }
 
         div.menu div.menu-item {
@@ -55,13 +57,25 @@ css = [r|
 
         div.footer {
             font-size: 90%;
-            margin-bottom: 100px;
-            margin-top: 10px;
+            margin: 0;
+            padding: 0 0 200px 0;
+        }
+
+        table.form {
+            border-collapse: collapse;
+        }
+
+        table.form, table.form > tbody, table.form > tbody > tr, table.form > tbody > tr > td {
+            border: 0;
+            margin: 0;
+            padding: 0;
         }
 
         textarea.answer {
-            width: 100%;
+            box-sizing: border-box;
+            margin: 0;
             max-width: 600px;
+            width: 100%;
         }
     |]
 
