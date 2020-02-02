@@ -49,6 +49,7 @@ renderTest footerStats question = do
                         H.table $ H.tbody $ do
                             H.tr $ H.td $ H.textarea
                                 ! A.name "answer"
+                                ! A.class_ "answer"
                                 ! A.cols "60"
                                 ! A.rows "5"
                                 ! Text.Blaze.customAttribute "autocomplete" "off"

@@ -58,6 +58,11 @@ css = [r|
             margin-bottom: 100px;
             margin-top: 10px;
         }
+
+        textarea.answer {
+            width: 100%;
+            max-width: 600px;
+        }
     |]
 
 footer :: FooterStats -> H.Html
