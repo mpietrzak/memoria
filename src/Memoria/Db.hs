@@ -37,6 +37,7 @@ module Memoria.Db (
     getAccountIdByToken,
     getAccountsByEmail,
     getAllQuestionsForAccount,
+    getAnswerById,
     getAnswers,
     getQuestionById,
     getQuestionSet,
@@ -538,6 +539,45 @@ getAllQuestionsForAccount accId = do
                 from question
                 where question_set in (select id from question_set where owner = ?)
                 order by id
+            |]
+
+getAnswerById :: (HasDbConn m, MonadIO m) => Text -> Text -> m (Maybe Answer)
+getAnswerById accId ansId = withConnection $ \conn -> do
+    let params = [ HDBC.toSql ansId, HDBC.toSql accId, HDBC.toSql accId, HDBC.toSql accId ]
+    rows <- liftIO $ HDBC.quickQuery conn sql params
+    case rows of
+        [] -> pure Nothing
+        [row] -> do
+            case row of
+                [id, answer, isCorrect, answeredAt, createdAt, modifiedAt] ->
+                    pure $ Just $ Answer { ansId = HDBC.fromSql id
+                                         , ansAnswer = HDBC.fromSql answer
+                                         , ansIsCorrect = HDBC.fromSql isCorrect
+                                         , ansAnsweredAt = HDBC.fromSql answeredAt
+                                         , ansCreatedAt = HDBC.fromSql answeredAt
+                                         , ansModifiedAt = HDBC.fromSql modifiedAt }
+                _ -> error "Invalid columns"
+        _ -> error "Too many rows"
+    where
+        sql = [r|
+                select id, answer, is_correct, answered_at, created_at, modified_at
+                from question_answer
+                where
+                    id = ?
+                    and account = ?
+                    and question in (
+                        select id
+                        from question
+                        where question_set in (
+                            select id
+                            from question_set
+                            where owner = ?
+                            union all
+                            select question_set
+                            from question_set_subscription
+                            where account = ?
+                        )
+                    )
             |]
 
 getAnswers :: (HasDbConn m, MonadIO m) => Text -> Text -> m [Answer]
