@@ -1,0 +1,3 @@
+force-trailing-newline: true
+indent-size: 4
+line-length: 100
