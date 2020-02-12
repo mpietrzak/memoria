@@ -11,32 +11,29 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE OverloadedStrings #-}
 
-module Memoria.Page.CreateAccount (
-    handleCreateAccount
-) where
+module Memoria.Page.CreateAccount
+    ( handleCreateAccount
+    ) where
 
-import Data.Text.Lazy (Text)
 import Control.Monad.IO.Class (liftIO)
+import Data.Text.Lazy (Text)
 import Formatting ((%), fprint, text)
 
 import Memoria.Common (HasRedirects)
+import qualified Memoria.Common
 import Memoria.Cookies (HasCookies(setCookie))
 import Memoria.Db (HasDb)
-import Memoria.Sessions (HasSessions)
-import qualified Memoria.Common
 import qualified Memoria.Db
+import Memoria.Sessions (HasSessions)
 import qualified Memoria.Sessions
 
 handleCreateAccount :: (HasCookies m, HasDb m, HasRedirects m, HasSessions m) => m Text
 handleCreateAccount = do
     let sessionCookieName = "session_id"
     sessionKey <- Memoria.Sessions.createSession
-    liftIO $ fprint
-        ("handleCreateAccount: Created new session with key: " % text % "\n")
-        sessionKey
+    liftIO $ fprint ("handleCreateAccount: Created new session with key: " % text % "\n") sessionKey
     setCookie sessionCookieName sessionKey
     accountId <- Memoria.Db.createAccount
     Memoria.Sessions.setSessionValue "account_id" accountId

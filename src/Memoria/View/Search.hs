@@ -11,13 +11,12 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE OverloadedStrings #-}
 
-module Memoria.View.Search (
-    SearchResult(..),
-    renderSearchResults
-) where
+module Memoria.View.Search
+    ( SearchResult(..)
+    , renderSearchResults
+    ) where
 
 import Data.Foldable (for_)
 import Data.Text.Lazy (Text)
@@ -27,23 +26,26 @@ import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
 import qualified Memoria.View.Base
 
-data SearchResult = SearchResult { srName :: Text
-                                 , srQuestionSetId :: Text }
+data SearchResult =
+    SearchResult
+        { srName :: Text
+        , srQuestionSetId :: Text
+        }
 
 renderSearchResults :: Memoria.View.Base.FooterStats -> [SearchResult] -> Text
 renderSearchResults footerStats searchResults = do
-    let content = H.div $ case searchResults of
-            [] -> H.p "Nothing found :<"
-            _ -> for_ searchResults renderSearchResult
+    let content =
+            H.div $
+            case searchResults of
+                [] -> H.p "Nothing found :<"
+                _ -> for_ searchResults renderSearchResult
     Memoria.View.Base.render footerStats content
-    where
-        renderSearchResult searchResult = H.div $ do
+  where
+    renderSearchResult searchResult =
+        H.div $ do
             H.toHtml (srName searchResult)
             "["
-            H.a
-                ! A.href (H.toValue (subscribeSearchResultHref searchResult))
-                $ "subscribe"
+            H.a ! A.href (H.toValue (subscribeSearchResultHref searchResult)) $ "subscribe"
             "]"
-        subscribeSearchResultHref searchResult = "subscribe-question-set?question-set="
-            <> (srQuestionSetId searchResult)
-
+    subscribeSearchResultHref searchResult =
+        "subscribe-question-set?question-set=" <> (srQuestionSetId searchResult)

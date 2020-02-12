@@ -11,12 +11,11 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE OverloadedStrings #-}
 
-module Memoria.View.Export (
-    renderExport
-) where
+module Memoria.View.Export
+    ( renderExport
+    ) where
 
 import Data.Text.Lazy (Text)
 import Text.Blaze.Html5 ((!))
@@ -28,9 +27,5 @@ import Memoria.View.Base (FooterStats)
 
 renderExport :: FooterStats -> Text
 renderExport footerStats = do
-    let content = H.div $ do
-            H.div $ H.p $ H.a
-                ! A.href "export-questions"
-                $ "Export"
+    let content = H.div $ do H.div $ H.p $ H.a ! A.href "export-questions" $ "Export"
     Memoria.View.Base.render footerStats content
-

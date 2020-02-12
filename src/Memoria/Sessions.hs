@@ -11,22 +11,14 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE OverloadedStrings #-}
 
-module Memoria.Sessions (
-    HasSessions (
-        createSession,
-        deleteSessionValue,
-        ensureSession,
-        generateRandomSessionKey,
-        getSessionValue,
-        setSessionValue
-    ),
-    sessionAccountIdName,
-    sessionIdCookieName
-)
-where
+module Memoria.Sessions
+    ( HasSessions(createSession, deleteSessionValue, ensureSession,
+            generateRandomSessionKey, getSessionValue, setSessionValue)
+    , sessionAccountIdName
+    , sessionIdCookieName
+    ) where
 
 import Data.Text.Lazy (Text)
 
@@ -38,7 +30,9 @@ sessionAccountIdName = "account_id"
 sessionIdCookieName :: Text
 sessionIdCookieName = "session_id"
 
-class Memoria.Db.HasDb m => HasSessions m where
+class Memoria.Db.HasDb m =>
+      HasSessions m
+    where
     createSession :: m Text
     ensureSession :: m Text
     generateRandomSessionKey :: m Text

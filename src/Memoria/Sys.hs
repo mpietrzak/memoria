@@ -11,12 +11,11 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE ForeignFunctionInterface #-}
 
-module Memoria.Sys (
-    getCurrentResidentSetSize
-) where
+module Memoria.Sys
+    ( getCurrentResidentSetSize
+    ) where
 
 import Foreign.C.Types (CSize(..))
 
@@ -26,4 +25,3 @@ getCurrentResidentSetSize :: IO Integer
 getCurrentResidentSetSize = do
     s <- cGetCurrentResidentSetSize
     pure $ fromIntegral s
-

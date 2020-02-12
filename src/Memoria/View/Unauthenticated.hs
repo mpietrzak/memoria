@@ -11,12 +11,11 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE OverloadedStrings #-}
 
-module Memoria.View.Unauthenticated (
-    renderUnauthenticated
-) where
+module Memoria.View.Unauthenticated
+    ( renderUnauthenticated
+    ) where
 
 import Data.Text.Lazy (Text)
 import Text.Blaze.XHtml1.Strict ((!))
@@ -28,12 +27,12 @@ import qualified Memoria.View.Base
 
 renderUnauthenticated :: FooterStats -> Text
 renderUnauthenticated footerStats = do
-    let content = H.div $ do
-            H.p $ H.toHtml ("hello, unauthenticated" :: Text)
+    let content =
             H.div $ do
-                H.p $ H.toHtml ("Create new account or log in:" :: Text)
-                H.a ! A.href "login" $ H.toHtml ("[Login]" :: Text)
-                H.toHtml (" " :: Text)
-                H.a ! A.href "create-account" $ H.toHtml ("[Create account]" :: Text)
+                H.p $ H.toHtml ("hello, unauthenticated" :: Text)
+                H.div $ do
+                    H.p $ H.toHtml ("Create new account or log in:" :: Text)
+                    H.a ! A.href "login" $ H.toHtml ("[Login]" :: Text)
+                    H.toHtml (" " :: Text)
+                    H.a ! A.href "create-account" $ H.toHtml ("[Create account]" :: Text)
     Memoria.View.Base.renderWithoutMenu footerStats content
-

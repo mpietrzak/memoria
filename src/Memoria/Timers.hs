@@ -11,7 +11,6 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -19,30 +18,37 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Memoria.Timers (
-    startTimers
-) where
+module Memoria.Timers
+    ( startTimers
+    ) where
 
+import qualified Control.Concurrent.Suspend
+import qualified Control.Concurrent.Timer
 import Control.Monad.Base (MonadBase)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Reader (ReaderT, Reader, ask, lift, runReaderT)
+import Control.Monad.Reader (Reader, ReaderT, ask, lift, runReaderT)
 import Control.Monad.Reader.Class (MonadReader)
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.IORef (IORef, atomicModifyIORef')
 import Data.Pool (Pool)
 import Data.Pool (withResource)
-import Formatting ((%), fprint, shown)
-import qualified Control.Concurrent.Suspend
-import qualified Control.Concurrent.Timer
 import qualified Database.HDBC.PostgreSQL as PSQL
+import Formatting ((%), fprint, shown)
 
-import Memoria.Common (HasSetSysStats(setSysStatsResidentSetSize, setSysStatsDatabaseSize), SysStats(..))
-import Memoria.Db (HasDb, HasDbConn, withConnection)
+import Memoria.Common
+    ( HasSetSysStats(setSysStatsDatabaseSize, setSysStatsResidentSetSize)
+    , SysStats(..)
+    )
 import qualified Memoria.Common
+import Memoria.Db (HasDb, HasDbConn, withConnection)
 import qualified Memoria.Db
 import qualified Memoria.Sys
 
-data TimerEnv = TimerEnv { tDbPool :: Pool PSQL.Connection, tStatsRef :: IORef SysStats }
+data TimerEnv =
+    TimerEnv
+        { tDbPool :: Pool PSQL.Connection
+        , tStatsRef :: IORef SysStats
+        }
 
 instance HasDb (ReaderT TimerEnv IO)
 
@@ -56,15 +62,11 @@ instance HasSetSysStats (ReaderT TimerEnv IO) where
     setSysStatsResidentSetSize size = do
         env <- ask
         let statsRef = tStatsRef env
-        liftIO $ atomicModifyIORef'
-            statsRef
-            (\stats -> (stats { sResidentSetSize = Just size }, ()))
+        liftIO $ atomicModifyIORef' statsRef (\stats -> (stats {sResidentSetSize = Just size}, ()))
     setSysStatsDatabaseSize size = do
         env <- ask
         let statsRef = tStatsRef env
-        liftIO $ atomicModifyIORef'
-            statsRef
-            (\stats -> (stats { sDatabaseSize = Just size }, ()))
+        liftIO $ atomicModifyIORef' statsRef (\stats -> (stats {sDatabaseSize = Just size}, ()))
 
 startTimers :: Pool PSQL.Connection -> IORef SysStats -> IO ()
 startTimers pool statsRef = do
@@ -73,14 +75,12 @@ startTimers pool statsRef = do
 startSysStatsTimer pool statsRef = do
     statsTimerMain pool statsRef
     let delay = Control.Concurrent.Suspend.sDelay 600
-    _timer <- Control.Concurrent.Timer.repeatedTimer
-        (statsTimerMain pool statsRef)
-        delay
+    _timer <- Control.Concurrent.Timer.repeatedTimer (statsTimerMain pool statsRef) delay
     pure ()
 
 statsTimerMain :: Pool PSQL.Connection -> IORef SysStats -> IO ()
 statsTimerMain pool statsRef = do
-    let env = TimerEnv { tDbPool = pool, tStatsRef = statsRef }
+    let env = TimerEnv {tDbPool = pool, tStatsRef = statsRef}
     _result <- runReaderT statsTimerMainM env
     pure ()
 
@@ -93,4 +93,3 @@ statsTimerMainM = do
         0 -> pure ()
         rss -> setSysStatsResidentSetSize rss
     pure ()
-

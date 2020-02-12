@@ -11,15 +11,16 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE OverloadedStrings #-}
 
-module Memoria.Page.Logout (handleLogout) where
+module Memoria.Page.Logout
+    ( handleLogout
+    ) where
 
 import Data.Text.Lazy (Text)
 
-import qualified Memoria.Sessions
 import qualified Memoria.Common
+import qualified Memoria.Sessions
 
 handleLogout :: (Memoria.Common.HasRedirects m, Memoria.Sessions.HasSessions m) => m Text
 handleLogout = do

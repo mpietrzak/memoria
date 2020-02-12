@@ -11,62 +11,73 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Memoria.Page.Export (
-    handleExport,
-    handleExportQuestions
-) where
+module Memoria.Page.Export
+    ( handleExport
+    , handleExportQuestions
+    ) where
 
-import Prelude hiding (id)
 import Data.Aeson (ToJSON)
-import Data.Aeson.TH (deriveJSON, defaultOptions)
+import qualified Data.Aeson
+import Data.Aeson.TH (defaultOptions, deriveJSON)
 import Data.ByteString.Lazy (ByteString)
 import Data.Text.Lazy (Text)
 import GHC.Generics (Generic)
-import qualified Data.Aeson
+import Prelude hiding (id)
 
 import qualified Memoria.Common
-import qualified Memoria.View.Export as V
 import qualified Memoria.Db as DB
+import qualified Memoria.View.Export as V
 
-data ExportQuestions = ExportQuestions { questions :: [ExportQuestion] }
+data ExportQuestions =
+    ExportQuestions
+        { questions :: [ExportQuestion]
+        }
     deriving (Generic, Show)
 
-data ExportQuestion = ExportQuestion { id :: Text
-                                     , question :: Text
-                                     , answer :: Text
-                                     , createdAt :: Text
-                                     , modifiedAt :: Text }
+data ExportQuestion =
+    ExportQuestion
+        { id :: Text
+        , question :: Text
+        , answer :: Text
+        , createdAt :: Text
+        , modifiedAt :: Text
+        }
     deriving (Show, Generic)
 
 instance ToJSON ExportQuestions
+
 instance ToJSON ExportQuestion
 
 handleExport :: (Memoria.Common.HasAccounts m, Memoria.Common.HasFooterStats m) => m Text
 handleExport = do
     footerStats <- Memoria.Common.getFooterStats
-    accId <- Memoria.Common.getAccountId >>= \case
-        Just accId -> pure accId
-        Nothing -> error "No account id"
+    accId <-
+        Memoria.Common.getAccountId >>= \case
+            Just accId -> pure accId
+            Nothing -> error "No account id"
     pure $ V.renderExport footerStats
 
 handleExportQuestions :: (Memoria.Common.HasAccounts m) => m ByteString
 handleExportQuestions = do
-    accId <- Memoria.Common.getAccountId >>= \case
-        Just accId -> pure accId
-        Nothing -> error "No account id"
+    accId <-
+        Memoria.Common.getAccountId >>= \case
+            Just accId -> pure accId
+            Nothing -> error "No account id"
     questions <- DB.getAllQuestionsForAccount accId
     let exportQuestionList = map toExportQuestion questions
-    let exportQuestionsObject = ExportQuestions { questions = exportQuestionList }
+    let exportQuestionsObject = ExportQuestions {questions = exportQuestionList}
     let questionsJsonBs = Data.Aeson.encode exportQuestionsObject
     pure questionsJsonBs
-    where
-        toExportQuestion q = ExportQuestion { id = DB.qId q
-                                            , question = DB.qQuestion q
-                                            , answer = DB.qAnswer q
-                                            , createdAt = DB.qCreatedAt q
-                                            , modifiedAt = DB.qModifiedAt q }
+  where
+    toExportQuestion q =
+        ExportQuestion
+            { id = DB.qId q
+            , question = DB.qQuestion q
+            , answer = DB.qAnswer q
+            , createdAt = DB.qCreatedAt q
+            , modifiedAt = DB.qModifiedAt q
+            }

@@ -11,23 +11,24 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Memoria.Page.Index (handleIndex) where
+module Memoria.Page.Index
+    ( handleIndex
+    ) where
 
 import Data.Text.Lazy (Text)
 import Prelude hiding (id)
 
 import Memoria.Common (HasAccounts, HasFooterStats)
+import qualified Memoria.Common as C
 import Memoria.Db (HasDb)
+import qualified Memoria.Db as DB
 import Memoria.Sessions (HasSessions)
 import Memoria.View.Index (renderIndex)
-import Memoria.View.Unauthenticated (renderUnauthenticated)
-import qualified Memoria.Common as C
-import qualified Memoria.Db as DB
 import qualified Memoria.View.Index as V
+import Memoria.View.Unauthenticated (renderUnauthenticated)
 
 handleIndex :: (HasAccounts m, HasDb m, HasFooterStats m, HasSessions m, Monad m) => m Text
 handleIndex = do
@@ -41,9 +42,5 @@ handleIndex = do
             let viewQuestionSets = map qsDbToView dbQuestionSets
             let viewSubscribedQuestionSets = map qsDbToView dbSubscribedQuestionSets
             pure $ renderIndex footerStats viewQuestionSets viewSubscribedQuestionSets
-    where
-        qsDbToView qs = V.QuestionSet
-            { V.id = DB.qsId qs
-            , V.name = DB.qsName qs }
-
-
+  where
+    qsDbToView qs = V.QuestionSet {V.id = DB.qsId qs, V.name = DB.qsName qs}

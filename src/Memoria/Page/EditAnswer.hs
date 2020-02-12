@@ -51,7 +51,13 @@ isCorrectValidator text =
         _ -> Left $ "Invalid value: " <> text
 
 handleEditAnswer ::
-       (C.HasAccounts m, C.HasFooterStats m, C.HasParams m, C.HasRedirects m, C.HasRequestMethod m, DB.HasDb m)
+       ( C.HasAccounts m
+       , C.HasFooterStats m
+       , C.HasParams m
+       , C.HasRedirects m
+       , C.HasRequestMethod m
+       , DB.HasDb m
+       )
     => m Text
 handleEditAnswer = do
     accId <-
@@ -119,9 +125,10 @@ handleEditAnswer = do
                 Left v -> pure $ V.renderEditAnswer footerStats v
                 Right (d :: FormResult) -> do
                     liftIO $ fprint ("Memoria.Form.EditAnswer: Got form data: " % shown % "\n") d
-                    let newIsCorrect = case rIsCorrect d of
-                            "true" -> True
-                            _ -> False
+                    let newIsCorrect =
+                            case rIsCorrect d of
+                                "true" -> True
+                                _ -> False
                     DB.updateAnswer accId answerId (newIsCorrect, rAnswer d)
                     C.redirect $ "question-answers?question=" <> (DB.qId question)
                     pure "ok"

@@ -11,18 +11,16 @@
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
-
 {-# LANGUAGE OverloadedStrings #-}
 
-module Memoria.Cookies (
-    HasCookies (setCookie, getCookie)
-) where
+module Memoria.Cookies
+    ( HasCookies(setCookie, getCookie)
+    ) where
 
 import Data.Text.Lazy (Text)
 
-class Monad m => HasCookies m
+class Monad m =>
+      HasCookies m
     where
-        setCookie :: Text -> Text -> m ()
-        getCookie :: Text -> m (Maybe Text)
-
-
+    setCookie :: Text -> Text -> m ()
+    getCookie :: Text -> m (Maybe Text)
