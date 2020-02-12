@@ -1113,6 +1113,10 @@ searchQuestionSets accId query = do
                         where account = ?
                     )
                     and name like '%' || ? || '%'
+                    and (
+                        is_deleted = false  -- undeleted
+                        or is_deleted is null  -- never deleted
+                    )
                 order by
                     created_at desc
             |]
