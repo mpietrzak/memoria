@@ -82,7 +82,7 @@ renderTestAnswer footerStats (answerId, answer) question isCorrect = do
                                 "Incorrect grade?"
                                 " "
                                 "["
-                                H.a ! A.href "edit-answer" $ "Edit answer"
+                                H.a ! A.href (H.toValue editAnswerHref) $ "Edit answer"
                                 "]"
                             H.p $ do
                                 "Incorrect questtion?"
@@ -94,6 +94,7 @@ renderTestAnswer footerStats (answerId, answer) question isCorrect = do
                     "["
                     H.a ! A.href "test" $ "Next question"
                     "]"
-
     Memoria.View.Base.render footerStats content
+    where
+        editAnswerHref = "edit-answer?answer-id=" <> answerId
 

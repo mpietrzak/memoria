@@ -48,7 +48,8 @@ module Memoria.Db (
     getSubscribedQuestionSetsForAccount,
     searchQuestionSets,
     sessionExists,
-    setQuestionSetDeleted
+    setQuestionSetDeleted,
+    updateAnswer
 ) where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -549,18 +550,19 @@ getAnswerById accId ansId = withConnection $ \conn -> do
         [] -> pure Nothing
         [row] -> do
             case row of
-                [id, answer, isCorrect, answeredAt, createdAt, modifiedAt] ->
+                [id, answer, isCorrect, answeredAt, createdAt, modifiedAt, questionId] ->
                     pure $ Just $ Answer { ansId = HDBC.fromSql id
                                          , ansAnswer = HDBC.fromSql answer
                                          , ansIsCorrect = HDBC.fromSql isCorrect
                                          , ansAnsweredAt = HDBC.fromSql answeredAt
                                          , ansCreatedAt = HDBC.fromSql answeredAt
-                                         , ansModifiedAt = HDBC.fromSql modifiedAt }
+                                         , ansModifiedAt = HDBC.fromSql modifiedAt
+                                         , ansQuestionId = HDBC.fromSql questionId }
                 _ -> error "Invalid columns"
         _ -> error "Too many rows"
     where
         sql = [r|
-                select id, answer, is_correct, answered_at, created_at, modified_at
+                select id, answer, is_correct, answered_at, created_at, modified_at, question
                 from question_answer
                 where
                     id = ?
@@ -1040,5 +1042,26 @@ setQuestionSetDeleted owner questionSetId = do
                 where
                     owner = ?
                     and id = ?
+            |]
+
+updateAnswer :: (MonadIO m, HasDbConn m) => Text -> Text -> (Bool, Text) -> m ()
+updateAnswer accId answerId (isCorrect, answer) = do
+    withConnection $ \conn -> do
+        let params = [ HDBC.toSql answer
+                     , HDBC.toSql isCorrect
+                     , HDBC.toSql answerId
+                     , HDBC.toSql accId ]
+        liftIO $ HDBC.run conn sql params
+        liftIO $ HDBC.commit conn
+    where
+        sql = [r|
+                update question_answer
+                set
+                    modified_at = current_timestamp,
+                    answer = ?,
+                    is_correct = ?
+                where
+                    id = ?
+                    and account = ?
             |]
 

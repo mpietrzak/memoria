@@ -50,6 +50,7 @@ library
                  , Memoria.Conf
                  , Memoria.Cookies
                  , Memoria.Db
+                 , Memoria.Form
                  , Memoria.Page.Auth
                  , Memoria.Page.CreateAccount
                  , Memoria.Page.CreateQuestion
