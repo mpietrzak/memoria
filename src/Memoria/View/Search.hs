@@ -27,7 +27,8 @@ import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
 import qualified Memoria.View.Base
 
-data SearchResult = SearchResult { srName :: Text }
+data SearchResult = SearchResult { srName :: Text
+                                 , srQuestionSetId :: Text }
 
 renderSearchResults :: Memoria.View.Base.FooterStats -> [SearchResult] -> Text
 renderSearchResults footerStats searchResults = do
@@ -36,5 +37,13 @@ renderSearchResults footerStats searchResults = do
             _ -> for_ searchResults renderSearchResult
     Memoria.View.Base.render footerStats content
     where
-        renderSearchResult searchResult = H.p $ H.a $ H.toHtml (srName searchResult)
+        renderSearchResult searchResult = H.div $ do
+            H.toHtml (srName searchResult)
+            "["
+            H.a
+                ! A.href (H.toValue (subscribeSearchResultHref searchResult))
+                $ "subscribe"
+            "]"
+        subscribeSearchResultHref searchResult = "subscribe-question-set?question-set="
+            <> (srQuestionSetId searchResult)
 

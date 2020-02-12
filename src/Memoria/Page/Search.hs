@@ -38,4 +38,5 @@ handleSearch = do
     let vSearchResults = map dbToViewSearchResult dbSearchResults
     pure $ V.renderSearchResults footerStats vSearchResults
     where
-        dbToViewSearchResult dbsr = V.SearchResult { V.srName = DB.qsName dbsr }
+        dbToViewSearchResult dbsr = V.SearchResult { V.srName = DB.qsName dbsr
+                                                   , V.srQuestionSetId = DB.qsId dbsr }
