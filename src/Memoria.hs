@@ -76,6 +76,7 @@ import Memoria.Page.QuestionSetSubscribe (handleQuestionSetSubscribe)
 import Memoria.Page.Search (handleSearch)
 import Memoria.Page.Settings (handleSettings)
 import Memoria.Page.Settings (handleSettingsAddEmail)
+import Memoria.Page.SubscribeQuestionSet (handleSubscribeQuestionSet)
 import Memoria.Page.Test (handleTest)
 import Memoria.Page.Test (handleTestAnswer)
 import Memoria.Sessions
@@ -270,6 +271,7 @@ application = do
     ST.get "/question-set-subscribe" $ withSetCookies handleQuestionSetSubscribe >>= ST.html
     ST.get "/settings" $ withSetCookies handleSettings >>= ST.html
     ST.get "/settings-add-email" $ withSetCookies handleSettingsAddEmail >>= ST.html
+    ST.get "/subscribe-question-set" $ withSetCookies handleSubscribeQuestionSet >>= ST.html
     ST.get "/test" $ withSetCookies handleTest >>= ST.html
     ST.post "/answer" $ withSetCookies handleTestAnswer >>= ST.html
     ST.post "/create-question" $ withSetCookies handleCreateQuestion >>= ST.html
@@ -279,6 +281,7 @@ application = do
     ST.post "/login" $ withSetCookies handleLogin >>= ST.html
     ST.post "/question-set-subscribe" $ withSetCookies handleQuestionSetSubscribe >>= ST.html
     ST.post "/settings-add-email" $ withSetCookies handleSettingsAddEmail >>= ST.html
+    ST.post "/subscribe-question-set" $ withSetCookies handleSubscribeQuestionSet >>= ST.html
     ST.get "/export-questions" $ do
         exportJson <- withSetCookies handleExportQuestions
         ST.setHeader "content-type" "text/json"

@@ -49,6 +49,7 @@ module Memoria.Db
     , searchQuestionSets
     , sessionExists
     , setQuestionSetDeleted
+    , subscribeQuestionSet
     , updateAnswer
     ) where
 
@@ -273,7 +274,7 @@ class HasDbConn m =>
                     current_timestamp,
                     current_timestamp
                 ) on conflict (session, name)
-                    do update set value = ?, modified_at = current_timestamp;
+                    do update set value = ?, modified_at = current_timestamp
             |]
         withConnection $ \conn -> do
             liftIO $
@@ -1151,6 +1152,39 @@ setQuestionSetDeleted owner questionSetId = do
                 where
                     owner = ?
                     and id = ?
+            |]
+
+subscribeQuestionSet :: (MonadIO m, HasDbConn m) => Text -> Text -> m ()
+subscribeQuestionSet accId questionSetId = do
+    withConnection $ \conn -> do
+        qssId <- newId
+        let params = [HDBC.toSql qssId, HDBC.toSql questionSetId, HDBC.toSql accId]
+        liftIO $ HDBC.run conn sql params
+        liftIO $ HDBC.commit conn
+  where
+    sql =
+        [r|
+                insert into question_set_subscription (
+                    id,
+                    question_set,
+                    account,
+                    subscribed,
+                    created_at,
+                    modified_at
+                ) values (
+                    ?,
+                    ?,
+                    ?,
+                    true,
+                    current_timestamp,
+                    current_timestamp
+                )
+                on conflict (account, question_set)
+                do
+                    update
+                    set
+                        subscribed = true,
+                        modified_at = current_timestamp
             |]
 
 updateAnswer :: (MonadIO m, HasDbConn m) => Text -> Text -> (Bool, Text) -> m ()

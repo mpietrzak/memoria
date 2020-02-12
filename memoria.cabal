@@ -66,6 +66,7 @@ library
                  , Memoria.Page.QuestionSetSubscribe
                  , Memoria.Page.Search
                  , Memoria.Page.Settings
+                 , Memoria.Page.SubscribeQuestionSet
                  , Memoria.Page.Test
                  , Memoria.Sessions
                  , Memoria.Sys
@@ -84,6 +85,7 @@ library
                  , Memoria.View.QuestionSetSubscribe
                  , Memoria.View.Search
                  , Memoria.View.Settings
+                 , Memoria.View.SubscribeQuestionSet
                  , Memoria.View.Test
                  , Memoria.View.Unauthenticated
 

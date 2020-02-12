@@ -140,4 +140,5 @@ create table question_set_subscription (
 create index question_set_subscription_account_i on question_set_subscription (account);
 create index question_set_subscription_created_i on question_set_subscription (created_at);
 create index question_set_subscription_modified_i on question_set_subscription (modified_at);
-
+create unique index question_set_subscription_ui
+on question_set_subscription (account, question_set);
