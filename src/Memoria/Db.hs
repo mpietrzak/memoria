@@ -35,12 +35,14 @@ module Memoria.Db
     , ensureCsrfToken
     , getAccountEmails
     , getAccountIdByToken
+    , getAccountNickname
     , getAccountsByEmail
     , getAllQuestionsForAccount
     , getAnswerById
     , getAnswers
     , getQuestionById
-    , getQuestionSet
+    , getQuestionSetById
+    , getQuestionSetByOwnerAndId
     , getQuestionSetById
     , getQuestionSetQuestions
     , getQuestionSetsForAccount
@@ -106,6 +108,8 @@ data QuestionSet =
         , qsOwner :: Text
         , qsCreatedAt :: Text
         , qsModifiedAt :: Text
+        , qsIsDeleted :: Bool
+        , qsOwnerId :: Text
         }
 
 data Question =
@@ -486,6 +490,19 @@ getAccountIdByToken token = do
                     and expires_at >= current_timestamp
             |]
 
+getAccountNickname :: (HasDbConn m) => Text -> m (Maybe Text)
+getAccountNickname accId = do
+    withConnection $ \conn -> do
+        rows <-
+            liftIO $
+            HDBC.quickQuery conn "select nickname from account where id = ?" [HDBC.toSql accId]
+        case rows of
+            [row] ->
+                case row of
+                    [sqlNickname] -> pure $ HDBC.fromSql sqlNickname
+                    _ -> error "Invalid number of columns"
+            _ -> error "Invalid number of rows"
+
 getAccountEmails :: (HasDbConn m) => Text -> m [AccountEmail]
 getAccountEmails accId = do
     withConnection $ \conn -> do
@@ -717,56 +734,64 @@ getQuestionById questionId =
                     id = ?
             |]
 
-getQuestionSet :: (HasDbConn m, MonadIO m) => Text -> Text -> m QuestionSet
-getQuestionSet owner id =
+-- TODO: Add permissions: public and private and shared question sets.
+getQuestionSetById :: (HasDbConn m, MonadIO m) => Text -> m QuestionSet
+getQuestionSetById id =
+    withConnection $ \conn -> do
+        rows <- liftIO $ HDBC.quickQuery conn sql [HDBC.toSql id]
+        case rows of
+            [row] -> pure $ rowToQuestionSet row
+            [] -> error "No rows returned from DB"
+            _ -> error $ "Too many rows returned from DB: " <> show (length rows)
+  where
+    rowToQuestionSet row =
+        case row of
+            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt, sqlIsDeleted, sqlOwnerId] ->
+                QuestionSet
+                    { qsId = HDBC.fromSql sqlId
+                    , qsName = HDBC.fromSql sqlName
+                    , qsOwner = HDBC.fromSql sqlOwner
+                    , qsCreatedAt = HDBC.fromSql sqlCreatedAt
+                    , qsModifiedAt = HDBC.fromSql sqlModifiedAt
+                    , qsIsDeleted = HDBC.fromSql sqlIsDeleted
+                    , qsOwnerId = HDBC.fromSql sqlOwnerId
+                    }
+            _ -> error "Invalid number of columns"
+    sql =
+        [r|
+            select id, name, owner, created_at, modified_at, is_deleted, owner
+            from question_set
+            where id = ?
+        |]
+
+-- TODO: Add permissions: public and private and shared question sets.
+getQuestionSetByOwnerAndId :: (HasDbConn m, MonadIO m) => Text -> Text -> m QuestionSet
+getQuestionSetByOwnerAndId owner id =
     withConnection $ \conn -> do
         rows <- liftIO $ HDBC.quickQuery conn sql [HDBC.toSql owner, HDBC.toSql id]
         case rows of
             [row] -> pure $ rowToQuestionSet row
-            _ -> error "Invalid number of rows returned from DB"
+            [] -> error "No rows returned from DB"
+            _ -> error $ "Too many rows returned from DB: " <> show (length rows)
   where
     rowToQuestionSet row =
         case row of
-            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt] ->
+            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt, sqlIsDeleted, sqlOwnerId] ->
                 QuestionSet
                     { qsId = HDBC.fromSql sqlId
                     , qsName = HDBC.fromSql sqlName
                     , qsOwner = HDBC.fromSql sqlOwner
                     , qsCreatedAt = HDBC.fromSql sqlCreatedAt
                     , qsModifiedAt = HDBC.fromSql sqlModifiedAt
+                    , qsIsDeleted = HDBC.fromSql sqlIsDeleted
+                    , qsOwnerId = HDBC.fromSql sqlOwnerId
                     }
             _ -> error "Invalid number of columns"
     sql =
         [r|
-            select id, name, owner, created_at, modified_at
+            select id, name, owner, created_at, modified_at, is_deleted, owner
             from question_set
-            where owner = ?  and id = ?
-        |]
-
-getQuestionSetById :: (HasDbConn m, MonadIO m) => Text -> m QuestionSet
-getQuestionSetById questionSetId =
-    withConnection $ \conn -> do
-        rows <- liftIO $ HDBC.quickQuery conn sql [HDBC.toSql questionSetId]
-        case rows of
-            [row] -> pure $ rowToQuestionSet row
-            _ -> error "Invalid number of rows returned from DB"
-  where
-    rowToQuestionSet row =
-        case row of
-            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt] ->
-                QuestionSet
-                    { qsId = HDBC.fromSql sqlId
-                    , qsName = HDBC.fromSql sqlName
-                    , qsOwner = HDBC.fromSql sqlOwner
-                    , qsCreatedAt = HDBC.fromSql sqlCreatedAt
-                    , qsModifiedAt = HDBC.fromSql sqlModifiedAt
-                    }
-            _ -> error "Invalid number of columns"
-    sql =
-        [r|
-            select id, name, owner, created_at, modified_at
-            from question_set
-            where id = ?
+            where owner = ? and id = ?
         |]
 
 getQuestionSetQuestions :: (HasDbConn m) => Text -> Text -> m [Question]
@@ -855,17 +880,19 @@ getRandomQuestion accId = do
                 let questionsWithScores = map rowToQuestionWithScore rows
                 let questionsWithWeights =
                         map (Data.Bifunctor.second scoreToWeight) questionsWithScores
+                {-#
                 liftIO $
                     fprint
                         ("Choosing weighted from:\n" % text)
                         (formatQuestionWeights questionsWithWeights)
+                #-}
                 randomQuestion <- liftIO $ weighted questionsWithWeights
                 liftIO $ fprint ("Chosen: " % text % "\n") (qQuestion randomQuestion)
                 pure randomQuestion
+    -- formatQuestionWeight (q, s) = format ((left 40 ' ' %. text) % " " % fixed 4) (qQuestion q) s
+    -- formatQuestionWeights qw =
+    --    Data.Text.Lazy.concat $ map ((\_l -> "  " <> _l <> "\n") . formatQuestionWeight) qw
   where
-    formatQuestionWeight (q, s) = format ((left 40 ' ' %. text) % " " % fixed 4) (qQuestion q) s
-    formatQuestionWeights qw =
-        Data.Text.Lazy.concat $ map ((\_l -> "  " <> _l <> "\n") . formatQuestionWeight) qw
     rowToQuestionWithScore =
         \case
             [id, question, answer, createdAt, modifiedAt, score] ->

@@ -23,6 +23,7 @@ module Memoria.View.Settings
 import Data.Default.Class (Default(def))
 import Data.Foldable (for_)
 import Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy
 import Text.Blaze.XHtml1.Strict ((!))
 import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
@@ -48,31 +49,56 @@ data AddEmailFormData =
 instance Default AddEmailFormData where
     def = AddEmailFormData {aefEmail = Nothing, aefEmailErr = Nothing}
 
+(!??) :: H.Html -> Maybe H.Attribute -> H.Html
 (!??) h ma =
     case ma of
         Nothing -> h
         Just a -> h ! a
 
-renderSettings :: FooterStats -> [AccountEmail] -> Text
-renderSettings footerStats accountEmails = do
+renderSettings :: FooterStats -> (Maybe Text) -> [AccountEmail] -> Text
+renderSettings footerStats mNickname accountEmails = do
     let content =
             H.div $ do
                 H.div $ do
                     "["
                     H.a ! A.href "settings-add-email" $ "Add email"
                     "]"
-                H.table $ do
-                    H.thead $
-                        H.tr $ do
-                            H.th "email"
-                            H.th "created at"
-                            H.th "modified at"
-                    H.tbody $
-                        for_ accountEmails $ \accountEmail ->
-                            H.tr $ do
-                                H.td $ H.toHtml (aeEmail accountEmail)
-                                H.td $ H.toHtml (aeCreatedAt accountEmail)
-                                H.td $ H.toHtml (aeModifiedAt accountEmail)
+                case mNickname of
+                    Nothing ->
+                        H.p $ do
+                            "You have no nickname."
+                            " "
+                            "["
+                            H.a ! A.href "set-nickname" $ "Set nickname"
+                            "]"
+                    Just nickname ->
+                        H.p $ do
+                            "Your nickname is: "
+                            H.em $ H.toHtml nickname
+                            " "
+                            "["
+                            H.a ! A.href "set-nickname" $ "Change nickname"
+                            "]"
+                case accountEmails of
+                    [] -> H.p "You have no emails set. Set some to be able to log in."
+                    _ -> do
+                        H.h3 "Emails"
+                        H.table $ do
+                            H.thead $
+                                H.tr $ do
+                                    H.th "email"
+                                    H.th "created at"
+                                    H.th "modified at"
+                            H.tbody $
+                                for_ accountEmails $ \accountEmail ->
+                                    H.tr $ do
+                                        H.td $ H.toHtml (aeEmail accountEmail)
+                                        H.td $
+                                            H.toHtml
+                                                (Data.Text.Lazy.take 19 (aeCreatedAt accountEmail))
+                                        H.td $
+                                            H.toHtml
+                                                (Data.Text.Lazy.take 19 (aeModifiedAt accountEmail))
     Memoria.View.Base.render footerStats content
 
 renderSettingsAddEmail :: FooterStats -> AddEmailFormData -> Text

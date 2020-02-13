@@ -46,7 +46,7 @@ handleDeleteQuestionSet = do
     case method of
         "GET" -> do
             footerStats <- C.getFooterStats
-            dbQuestionSet <- DB.getQuestionSet accId questionSetId
+            dbQuestionSet <- DB.getQuestionSetByOwnerAndId accId questionSetId
             let vQuestionSet =
                     V.QuestionSet
                         { V.qsId = DB.qsId dbQuestionSet

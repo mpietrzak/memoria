@@ -45,11 +45,11 @@ handleQuestionSet = do
                 Memoria.Common.getParam "id" >>= \case
                     Nothing -> error "Missing id param"
                     Just id -> pure id
-            dbQuestionSet <- DB.getQuestionSet accId questionSetId
+            dbQuestionSet <- DB.getQuestionSetById questionSetId
             let viewQuestionSet = dbQuestionSetToView dbQuestionSet
             dbQuestions <- DB.getQuestionSetQuestions accId questionSetId
             let viewQuestions = map dbQuestionToView dbQuestions
-            pure $ V.renderQuestionSet footerStats viewQuestionSet viewQuestions
+            pure $ V.renderQuestionSet footerStats accId viewQuestionSet viewQuestions
   where
     dbQuestionSetToView dbqs =
         V.QuestionSet
@@ -57,6 +57,8 @@ handleQuestionSet = do
             , V.qsName = DB.qsName dbqs
             , V.qsCreatedAt = DB.qsCreatedAt dbqs
             , V.qsModifiedAt = DB.qsModifiedAt dbqs
+            , V.qsIsDeleted = DB.qsIsDeleted dbqs
+            , V.qsOwnerId = DB.qsOwnerId dbqs
             }
     dbQuestionToView dbq =
         V.Question

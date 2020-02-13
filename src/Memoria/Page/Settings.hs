@@ -59,7 +59,8 @@ handleSettings = do
             Nothing -> error "No account id"
     dbAccEmails <- DB.getAccountEmails accId
     let vAccEmails = map dbToViewAccEmail dbAccEmails
-    pure $ V.renderSettings footerStats vAccEmails
+    nickname <- DB.getAccountNickname accId
+    pure $ V.renderSettings footerStats nickname vAccEmails
   where
     dbToViewAccEmail dbEmail =
         V.AccountEmail

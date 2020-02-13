@@ -37,8 +37,10 @@ data QuestionSet =
     QuestionSet
         { qsId :: Text
         , qsName :: Text
+        , qsOwnerId :: Text
         , qsCreatedAt :: Text
         , qsModifiedAt :: Text
+        , qsIsDeleted :: Bool
         }
 
 data Question =
@@ -51,8 +53,8 @@ data Question =
         , qModifiedAt :: Text
         }
 
-renderQuestionSet :: FooterStats -> QuestionSet -> [Question] -> Text
-renderQuestionSet footerStats questionSet questions = do
+renderQuestionSet :: FooterStats -> Text -> QuestionSet -> [Question] -> Text
+renderQuestionSet footerStats accId questionSet questions = do
     let questionCount = Data.List.length questions
     let averageScore =
             case questionCount of
@@ -73,14 +75,17 @@ renderQuestionSet footerStats questionSet questions = do
                     "Average score: "
                     H.toHtml $ format (fixed 2) averageScore
                     "."
-                H.div $ do
-                    "["
-                    H.a ! A.href addQuestionHref $ "Add question"
-                    "]"
-                    " "
-                    "["
-                    H.a ! A.href deleteQuestionSetHref $ "Delete question set"
-                    "]"
+                case accId == (qsOwnerId questionSet) of
+                    True ->
+                        H.div $ do
+                            "["
+                            H.a ! A.href addQuestionHref $ "Add question"
+                            "]"
+                            " "
+                            "["
+                            H.a ! A.href deleteQuestionSetHref $ "Delete question set"
+                            "]"
+                    False -> ""
                 H.table $ do
                     H.thead $
                         H.tr $ do

@@ -27,6 +27,7 @@ create index session_modified_i on session (modified_at);
 
 create table account (
     id varchar(128) primary key,
+    nickname varchar(64),
     created_at timestamp not null,
     modified_at timestamp not null
 );
