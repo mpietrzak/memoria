@@ -830,7 +830,7 @@ getQuestionSetQuestions owner id =
         rows <- liftIO $ HDBC.quickQuery conn sql params
         pure $ map rowToQuestion rows
   where
-    params = [HDBC.toSql owner, HDBC.toSql owner, HDBC.toSql id]
+    params = [HDBC.toSql owner, HDBC.toSql id]
     rowToQuestion row =
         case row of
             [id, question, answer, createdAt, modifiedAt, score] ->
@@ -888,16 +888,22 @@ getQuestionSetQuestions owner id =
                 from
                     question
                 where
-                    question_set = (select id from question_set where owner = ? and id = ?)
+                    question_set = ?
                 order by id
             |]
 
 getRandomQuestion :: HasDbConn m => Text -> m Question
 getRandomQuestion accId = do
     randomValue <- newId
-    withConnection $ \conn -> do
+    withConnection $ \conn
+        -- TODO: named params in HDBC pls..
+     -> do
         let params =
                 [ HDBC.toSql randomValue
+                , HDBC.toSql accId
+                , HDBC.toSql randomValue
+                , HDBC.toSql accId
+                , HDBC.toSql randomValue
                 , HDBC.toSql accId
                 , HDBC.toSql randomValue
                 , HDBC.toSql accId
@@ -976,6 +982,48 @@ getRandomQuestion accId = do
                                             and (is_deleted = false or is_deleted is null)
                                     )
                                 order by id
+                            )
+                            union all
+                            (
+                                select id
+                                from question
+                                where
+                                    id >= ?
+                                    and question_set in (
+                                        select
+                                            qs.id
+                                        from
+                                            question_set_subscription as qss
+                                            join question_set as qs
+                                            on (qs.id = qss.question_set)
+                                        where
+                                            qss.account = ?
+                                            and (
+                                                qs.is_deleted = false
+                                                or qs.is_deleted is null
+                                            )
+                                    )
+                            )
+                            union all
+                            (
+                                select id
+                                from question
+                                where
+                                    id < ?
+                                    and question_set in (
+                                        select
+                                            qs.id
+                                        from
+                                            question_set_subscription as qss
+                                            join question_set as qs
+                                            on (qs.id = qss.question_set)
+                                        where
+                                            qss.account = ?
+                                            and (
+                                                qs.is_deleted = false
+                                                or qs.is_deleted is null
+                                            )
+                                    )
                             )
                         ) as r
                     limit 1000
