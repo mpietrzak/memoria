@@ -40,9 +40,13 @@ css =
     [r|
         body {
             font-family: "Helvetica Neue", "Helvetica", "Roboto", sans-serif;
-            font-size: 12pt;
+            font-size: 16px;
             margin: 0;
             padding: 10px;
+        }
+
+        textarea, input {
+            font-size: 16px;
         }
 
         div.menu {
@@ -121,7 +125,8 @@ render footerStats content =
     H.docTypeHtml $ do
         H.head $ do
             H.title $ H.toHtml ("test" :: Text)
-            H.meta ! A.name "viewport" ! A.content "width=device-width, initial-scale=1"
+            H.meta ! A.name "viewport" !
+                A.content "width=device-width, initial-scale=1, maximum-scale=1"
             H.style $ H.toHtml css
         H.body $ do
             H.div ! A.class_ "menu" $ menu
