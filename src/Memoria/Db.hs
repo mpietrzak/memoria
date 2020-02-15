@@ -50,6 +50,7 @@ module Memoria.Db
     , getSubscribedQuestionSetsForAccount
     , searchQuestionSets
     , sessionExists
+    , setNickname
     , setQuestionSetDeleted
     , subscribeQuestionSet
     , updateAnswer
@@ -1168,6 +1169,15 @@ sessionExists sessionKey =
                         liftIO $ fprint ("sessionExists: Unexpected type: " % shown % "\n") v
                         pure True
             _ -> pure False
+
+setNickname :: (MonadIO m, HasDbConn m) => Text -> Text -> m ()
+setNickname accId nickname = do
+    withConnection $ \conn -> do
+        let params = [HDBC.toSql nickname, HDBC.toSql accId]
+        liftIO $ HDBC.run conn sql params
+        liftIO $ HDBC.commit conn
+  where
+    sql = "update account set nickname = ?, modified_at = current_timestamp where id = ?"
 
 setQuestionSetDeleted :: (MonadIO m, HasDbConn m) => Text -> Text -> m ()
 setQuestionSetDeleted owner questionSetId = do

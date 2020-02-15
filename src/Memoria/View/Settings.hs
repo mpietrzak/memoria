@@ -16,6 +16,8 @@
 module Memoria.View.Settings
     ( AccountEmail(..)
     , AddEmailFormData(..)
+    , NicknameViewData(..)
+    , renderSetNickname
     , renderSettings
     , renderSettingsAddEmail
     ) where
@@ -46,14 +48,47 @@ data AddEmailFormData =
         }
     deriving (Show)
 
+data NicknameViewData =
+    NicknameViewData
+        { nvNickname :: Maybe Text
+        , nvNicknameErr :: Maybe Text
+        }
+    deriving (Show)
+
 instance Default AddEmailFormData where
     def = AddEmailFormData {aefEmail = Nothing, aefEmailErr = Nothing}
+
+instance Default NicknameViewData where
+    def = NicknameViewData {nvNickname = Nothing, nvNicknameErr = Nothing}
 
 (!??) :: H.Html -> Maybe H.Attribute -> H.Html
 (!??) h ma =
     case ma of
         Nothing -> h
         Just a -> h ! a
+
+renderSetNickname :: FooterStats -> NicknameViewData -> Text
+renderSetNickname footerStats viewData = do
+    let content = do
+            case nvNickname viewData of
+                Nothing -> H.p "You have no nickname."
+                Just nickname ->
+                    H.p $ do
+                        "Your nickname is: "
+                        H.toHtml nickname
+            H.div $ do
+                H.form ! A.method "post" $
+                    H.table ! A.class_ "form" $
+                    H.tbody $ do
+                        H.tr $ do
+                            H.td "New nickname:"
+                            H.td $
+                                H.input ! A.name "nickname" !??
+                                case nvNickname viewData of
+                                    Nothing -> Nothing
+                                    Just n -> Just $ A.value (H.toValue n)
+                        H.tr $ H.td ! A.align "right" ! A.colspan "2" $ H.button "Ok"
+    Memoria.View.Base.render footerStats content
 
 renderSettings :: FooterStats -> (Maybe Text) -> [AccountEmail] -> Text
 renderSettings footerStats mNickname accountEmails = do

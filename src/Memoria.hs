@@ -74,6 +74,7 @@ import Memoria.Page.QuestionAnswers (handleQuestionAnswers)
 import Memoria.Page.QuestionSet (handleQuestionSet)
 import Memoria.Page.QuestionSetSubscribe (handleQuestionSetSubscribe)
 import Memoria.Page.Search (handleSearch)
+import Memoria.Page.Settings (handleSetNickname)
 import Memoria.Page.Settings (handleSettings)
 import Memoria.Page.Settings (handleSettingsAddEmail)
 import Memoria.Page.SubscribeQuestionSet (handleSubscribeQuestionSet)
@@ -269,6 +270,7 @@ application = do
     ST.get "/question-set" $ withSetCookies handleQuestionSet >>= ST.html
     ST.get "/question-set-search" $ withSetCookies handleSearch >>= ST.html
     ST.get "/question-set-subscribe" $ withSetCookies handleQuestionSetSubscribe >>= ST.html
+    ST.get "/set-nickname" $ withSetCookies handleSetNickname >>= ST.html
     ST.get "/settings" $ withSetCookies handleSettings >>= ST.html
     ST.get "/settings-add-email" $ withSetCookies handleSettingsAddEmail >>= ST.html
     ST.get "/subscribe-question-set" $ withSetCookies handleSubscribeQuestionSet >>= ST.html
@@ -281,6 +283,7 @@ application = do
     ST.post "/login" $ withSetCookies handleLogin >>= ST.html
     ST.post "/question-set-subscribe" $ withSetCookies handleQuestionSetSubscribe >>= ST.html
     ST.post "/settings-add-email" $ withSetCookies handleSettingsAddEmail >>= ST.html
+    ST.post "/set-nickname" $ withSetCookies handleSetNickname >>= ST.html
     ST.post "/subscribe-question-set" $ withSetCookies handleSubscribeQuestionSet >>= ST.html
     ST.get "/export-questions" $ do
         exportJson <- withSetCookies handleExportQuestions

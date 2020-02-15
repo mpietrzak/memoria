@@ -15,7 +15,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Memoria.Page.Settings
-    ( handleSettings
+    ( handleSetNickname
+    , handleSettings
     , handleSettingsAddEmail
     ) where
 
@@ -25,10 +26,20 @@ import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy
 import Formatting ((%), fprint, shown, text)
 
-import qualified Memoria.Common
+import qualified Memoria.Common as C
 import qualified Memoria.Db as DB
+import qualified Memoria.Form as F
 import qualified Memoria.View.Settings as V
 
+data NicknameFormResult =
+    NicknameFormResult
+        { rNickname :: Text
+        }
+
+instance Default NicknameFormResult where
+    def = NicknameFormResult {rNickname = ""}
+
+validateEmail :: Maybe Text -> Either Text (Maybe Text)
 validateEmail val =
     case val of
         Nothing -> Left "Email is required"
@@ -41,20 +52,61 @@ validateEmail val =
                         Just _ -> Right (Just _v)
 
 processField fieldName validator fieldSetter errSetter formData = do
-    mval <- Memoria.Common.getParam fieldName
+    mval <- C.getParam fieldName
     liftIO $ fprint ("processField: Field " % text % " has value " % shown % "\n") fieldName mval
     let validationResult = validator mval
     case validationResult of
         Left err -> pure (False, fieldSetter mval $ errSetter err formData)
         Right val -> pure (True, fieldSetter val formData)
 
-handleSettings ::
-       (Monad m, DB.HasDb m, Memoria.Common.HasAccounts m, Memoria.Common.HasFooterStats m)
+handleSetNickname ::
+       (C.HasAccounts m, C.HasFooterStats m, C.HasParams m, C.HasRedirects m, C.HasRequestMethod m)
     => m Text
-handleSettings = do
-    footerStats <- Memoria.Common.getFooterStats
+handleSetNickname = do
     accId <-
-        Memoria.Common.getAccountId >>= \case
+        C.getAccountId >>= \case
+            Just accId -> pure accId
+            Nothing -> error "No account id"
+    method <- C.getRequestMethod
+    case method of
+        "GET" -> do
+            mNickname <- DB.getAccountNickname accId
+            footerStats <- C.getFooterStats
+            let nicknameViewData =
+                    V.NicknameViewData {V.nvNickname = mNickname, V.nvNicknameErr = Nothing}
+            pure $ V.renderSetNickname footerStats nicknameViewData
+        "POST" -> do
+            nickname <-
+                C.getParam "nickname" >>= \case
+                    Just _n -> pure _n
+                    Nothing -> error "nickname is required"
+            let fields =
+                    [ ( "nickname"
+                      , nickname
+                      , \_n ->
+                            case Data.Text.Lazy.strip _n of
+                                "" -> Left "nickname is required"
+                                _ -> Right $ _n
+                      -- view data expects Maybe Text; HTTP request always carries Text
+                      , \_vd _fv -> _vd {V.nvNickname = Just _fv}
+                      , \_vd _err -> _vd {V.nvNicknameErr = Just _err}
+                      , \_res _fv -> _res {rNickname = _fv})
+                    ]
+            case F.processForm fields of
+                Left viewData -> do
+                    footerStats <- C.getFooterStats
+                    pure $ V.renderSetNickname footerStats viewData
+                Right formResult -> do
+                    DB.setNickname accId (rNickname formResult)
+                    C.redirect "settings"
+                    pure "redirecting to settings..."
+        _ -> error "Invalid HTTP method"
+
+handleSettings :: (Monad m, DB.HasDb m, C.HasAccounts m, C.HasFooterStats m) => m Text
+handleSettings = do
+    footerStats <- C.getFooterStats
+    accId <-
+        C.getAccountId >>= \case
             Just accId -> pure accId
             Nothing -> error "No account id"
     dbAccEmails <- DB.getAccountEmails accId
@@ -73,17 +125,17 @@ handleSettings = do
 handleSettingsAddEmail ::
        ( Monad m
        , DB.HasDb m
-       , Memoria.Common.HasAccounts m
-       , Memoria.Common.HasFooterStats m
-       , Memoria.Common.HasParams m
-       , Memoria.Common.HasRedirects m
-       , Memoria.Common.HasRequestMethod m
+       , C.HasAccounts m
+       , C.HasFooterStats m
+       , C.HasParams m
+       , C.HasRedirects m
+       , C.HasRequestMethod m
        )
     => m Text
 handleSettingsAddEmail = do
-    footerStats <- Memoria.Common.getFooterStats
+    footerStats <- C.getFooterStats
     accId <-
-        Memoria.Common.getAccountId >>= \case
+        C.getAccountId >>= \case
             Just accId -> pure accId
             Nothing -> error "No account id"
     let fields =
@@ -92,7 +144,7 @@ handleSettingsAddEmail = do
               , \v f -> f {V.aefEmail = v}
               , \e f -> f {V.aefEmailErr = Just e})
             ]
-    method <- Memoria.Common.getRequestMethod
+    method <- C.getRequestMethod
     case method of
         "GET" -> pure $ V.renderSettingsAddEmail footerStats def
         "POST" -> do
@@ -103,7 +155,7 @@ handleSettingsAddEmail = do
                           Nothing -> error "Email missing in valid form data"
                           Just e -> do
                               DB.addEmail accId e
-                              Memoria.Common.redirect "settings"
+                              C.redirect "settings"
                               pure "")
                 else pure $ V.renderSettingsAddEmail footerStats formData
         _ -> error "Unsupported method"
