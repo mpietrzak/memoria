@@ -923,7 +923,6 @@ getRandomQuestion accId = do
                         (formatQuestionWeights questionsWithWeights)
                 #-}
                 randomQuestion <- liftIO $ weighted questionsWithWeights
-                liftIO $ fprint ("Chosen: " % text % "\n") (qQuestion randomQuestion)
                 pure randomQuestion
     -- formatQuestionWeight (q, s) = format ((left 40 ' ' %. text) % " " % fixed 4) (qQuestion q) s
     -- formatQuestionWeights qw =
