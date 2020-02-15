@@ -15,7 +15,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Memoria.Page.Settings
-    ( handleSetNickname
+    ( handleDeleteNickname
+    , handleSetNickname
     , handleSettings
     , handleSettingsAddEmail
     ) where
@@ -58,6 +59,41 @@ processField fieldName validator fieldSetter errSetter formData = do
     case validationResult of
         Left err -> pure (False, fieldSetter mval $ errSetter err formData)
         Right val -> pure (True, fieldSetter val formData)
+
+handleDeleteNickname ::
+       ( C.HasAccounts m
+       , C.HasCsrfToken m
+       , C.HasFooterStats m
+       , C.HasParams m
+       , C.HasRedirects m
+       , C.HasRequestMethod m
+       )
+    => m Text
+handleDeleteNickname = do
+    accId <-
+        C.getAccountId >>= \case
+            Just accId -> pure accId
+            Nothing -> error "No account id"
+    method <- C.getRequestMethod
+    case method of
+        "GET" -> do
+            footerStats <- C.getFooterStats
+            csrfToken <- C.ensureCsrfToken
+            pure $ V.renderDeleteNickname footerStats csrfToken
+        "POST" -> do
+            C.getParam "decision" >>= \case
+                Nothing -> error "decision is required"
+                Just "yes" -> do
+                    csrfToken <-
+                        C.getParam "csrf-token" >>= \case
+                            Nothing -> error "csrf-token is required"
+                            Just csrfToken -> pure csrfToken
+                    C.checkCsrfToken csrfToken
+                    DB.deleteNickname accId
+                    C.redirect "settings"
+                    pure "redirecting to settings..."
+                _ -> error "Invalid decision"
+        _ -> error "Invalid request method"
 
 handleSetNickname ::
        (C.HasAccounts m, C.HasFooterStats m, C.HasParams m, C.HasRedirects m, C.HasRequestMethod m)

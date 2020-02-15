@@ -31,6 +31,7 @@ module Memoria.Db
     , addQuestionAnswer
     , createDbPool
     , createQuestionSet
+    , deleteNickname
     , deleteSessionValue
     , ensureCsrfToken
     , getAccountEmails
@@ -1025,6 +1026,15 @@ getSubscribedQuestionSetsForAccount accId = do
                 order by
                     id
             |]
+
+deleteNickname :: HasDbConn m => Text -> m ()
+deleteNickname accId = do
+    withConnection $ \conn -> do
+        let params = [HDBC.toSql accId]
+        liftIO $ HDBC.run conn sql params
+        liftIO $ HDBC.commit conn
+  where
+    sql = "update account set nickname = null, modified_at = current_timestamp where id = ?"
 
 deleteSessionValue :: HasDbConn m => Text -> Text -> m ()
 deleteSessionValue sessionKey name =

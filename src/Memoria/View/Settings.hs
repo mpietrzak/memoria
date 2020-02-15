@@ -17,6 +17,7 @@ module Memoria.View.Settings
     ( AccountEmail(..)
     , AddEmailFormData(..)
     , NicknameViewData(..)
+    , renderDeleteNickname
     , renderSetNickname
     , renderSettings
     , renderSettingsAddEmail
@@ -67,6 +68,16 @@ instance Default NicknameViewData where
         Nothing -> h
         Just a -> h ! a
 
+renderDeleteNickname :: FooterStats -> Text -> Text
+renderDeleteNickname footerStats csrfToken = do
+    let content =
+            H.div $ do
+                H.p "Are you sure you want to delete your nickname?"
+                H.form ! A.method "post" $ do
+                    H.input ! A.name "csrf-token" ! A.type_ "hidden" ! A.value (H.toValue csrfToken)
+                    H.button ! A.name "decision" ! A.type_ "submit" ! A.value "yes" $ "Yes"
+    Memoria.View.Base.render footerStats content
+
 renderSetNickname :: FooterStats -> NicknameViewData -> Text
 renderSetNickname footerStats viewData = do
     let content = do
@@ -113,6 +124,10 @@ renderSettings footerStats mNickname accountEmails = do
                             " "
                             "["
                             H.a ! A.href "set-nickname" $ "Change nickname"
+                            "]"
+                            " "
+                            "["
+                            H.a ! A.href "delete-nickname" $ "Delete nickname"
                             "]"
                 case accountEmails of
                     [] -> H.p "You have no emails set. Set some to be able to log in."
