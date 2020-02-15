@@ -108,6 +108,7 @@ data QuestionSet =
         { qsId :: Text
         , qsName :: Text
         , qsOwner :: Text
+        , qsOwnerNickname :: Maybe Text
         , qsCreatedAt :: Text
         , qsModifiedAt :: Text
         , qsIsDeleted :: Bool
@@ -207,13 +208,15 @@ class HasDbConn m =>
         let sql =
                 [r|
                 select
-                    id,
-                    name,
-                    owner,
-                    created_at,
-                    modified_at
+                    question_set.id,
+                    question_set.name,
+                    question_set.owner,
+                    account.nickname as owner_nickname,
+                    question_set.created_at,
+                    question_set.modified_at
                 from
                     question_set
+                    join account on (account.id = question_set.owner)
                 where
                     owner = ?
                     and (is_deleted = false or is_deleted is null)
@@ -224,11 +227,12 @@ class HasDbConn m =>
       where
         rowToQuestionSet row =
             case row of
-                [id, name, owner, createdAt, modifiedAt] ->
+                [id, name, owner, ownerNickname, createdAt, modifiedAt] ->
                     QuestionSet
                         { qsId = HDBC.fromSql id
                         , qsName = HDBC.fromSql name
                         , qsOwner = HDBC.fromSql owner
+                        , qsOwnerNickname = HDBC.fromSql ownerNickname
                         , qsCreatedAt = HDBC.fromSql createdAt
                         , qsModifiedAt = HDBC.fromSql modifiedAt
                         }
@@ -748,7 +752,7 @@ getQuestionSetById id =
   where
     rowToQuestionSet row =
         case row of
-            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt, sqlIsDeleted, sqlOwnerId] ->
+            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt, sqlIsDeleted, sqlOwnerId, sqlOwnerNickname] ->
                 QuestionSet
                     { qsId = HDBC.fromSql sqlId
                     , qsName = HDBC.fromSql sqlName
@@ -756,14 +760,25 @@ getQuestionSetById id =
                     , qsCreatedAt = HDBC.fromSql sqlCreatedAt
                     , qsModifiedAt = HDBC.fromSql sqlModifiedAt
                     , qsIsDeleted = HDBC.fromSql sqlIsDeleted
-                    , qsOwnerId = HDBC.fromSql sqlOwnerId
+                    , qsOwnerId = HDBC.fromSql sqlOwnerId -- e????
+                    , qsOwnerNickname = HDBC.fromSql sqlOwnerNickname
                     }
             _ -> error "Invalid number of columns"
     sql =
         [r|
-            select id, name, owner, created_at, modified_at, is_deleted, owner
-            from question_set
-            where id = ?
+            select
+                question_set.id,
+                question_set.name,
+                question_set.owner,
+                question_set.created_at,
+                question_set.modified_at,
+                question_set.is_deleted,
+                question_set.owner,
+                account.nickname
+            from
+                question_set
+                join account on (account.id = question_set.owner)
+            where question_set.id = ?
         |]
 
 -- TODO: Add permissions: public and private and shared question sets.
@@ -778,7 +793,7 @@ getQuestionSetByOwnerAndId owner id =
   where
     rowToQuestionSet row =
         case row of
-            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt, sqlIsDeleted, sqlOwnerId] ->
+            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt, sqlIsDeleted, sqlOwnerId, sqlOwnerNickname] ->
                 QuestionSet
                     { qsId = HDBC.fromSql sqlId
                     , qsName = HDBC.fromSql sqlName
@@ -787,13 +802,24 @@ getQuestionSetByOwnerAndId owner id =
                     , qsModifiedAt = HDBC.fromSql sqlModifiedAt
                     , qsIsDeleted = HDBC.fromSql sqlIsDeleted
                     , qsOwnerId = HDBC.fromSql sqlOwnerId
+                    , qsOwnerNickname = HDBC.fromSql sqlOwnerNickname
                     }
             _ -> error "Invalid number of columns"
     sql =
         [r|
-            select id, name, owner, created_at, modified_at, is_deleted, owner
+            select
+                question_set.id,
+                question_set.name,
+                question_set.owner,
+                question_set.created_at,
+                question_set.modified_at,
+                question_set.is_deleted,
+                question_set.owner,
+                account.nickname
             from question_set
-            where owner = ? and id = ?
+            where
+                question_set.owner = ?
+                and question_set.id = ?
         |]
 
 getQuestionSetQuestions :: (HasDbConn m) => Text -> Text -> m [Question]
@@ -1005,23 +1031,34 @@ getSubscribedQuestionSetsForAccount accId = do
   where
     rowToQuestionSet =
         \case
-            [id, name, owner, createdAt, modifiedAt] ->
+            [id, name, owner, createdAt, modifiedAt, ownerNickname] ->
                 QuestionSet
                     { qsId = HDBC.fromSql id
                     , qsName = HDBC.fromSql name
                     , qsOwner = HDBC.fromSql owner
                     , qsCreatedAt = HDBC.fromSql createdAt
                     , qsModifiedAt = HDBC.fromSql modifiedAt
+                    , qsOwnerNickname = HDBC.fromSql ownerNickname
                     }
             _ -> error "Invaild number of columns"
     sql =
         [r|
                 select
-                    id, name, owner, created_at, modified_at
+                    question_set.id,
+                    question_set.name,
+                    question_set.owner,
+                    question_set.created_at,
+                    question_set.modified_at,
+                    account.nickname
                 from
                     question_set
+                    join account on (account.id = question_set.owner)
                 where
-                    id in (select question_set from question_set_subscription where account = ?)
+                    question_set.id in (
+                        select question_set
+                        from question_set_subscription
+                        where account = ?
+                    )
                     and (is_deleted = false or is_deleted is null)
                 order by
                     id
@@ -1125,35 +1162,42 @@ searchQuestionSets accId query = do
   where
     rowToSearchResult =
         \case
-            [id, name, owner, createdAt, modifiedAt] ->
+            [id, name, owner, createdAt, modifiedAt, ownerNickname] ->
                 QuestionSet
                     { qsId = HDBC.fromSql id
                     , qsName = HDBC.fromSql name
                     , qsOwner = HDBC.fromSql owner
                     , qsCreatedAt = HDBC.fromSql createdAt
                     , qsModifiedAt = HDBC.fromSql modifiedAt
+                    , qsOwnerNickname = HDBC.fromSql ownerNickname
                     }
             _ -> error "Invalid column count"
     sql =
         [r|
                 select
-                    id,
-                    name,
-                    owner,
-                    created_at,
-                    modified_at
+                    question_set.id,
+                    question_set.name,
+                    question_set.owner,
+                    question_set.created_at,
+                    question_set.modified_at,
+                    account.nickname
                 from
                     question_set
+                    join account on (account.id = question_set.owner)
                 where
-                    owner != ?
-                    and id not in (
-                        select question_set from question_set_subscription
+                    -- filter out owned
+                    question_set.owner != ?
+                    -- filter out subscribed
+                    and question_set.id not in (
+                        select question_set
+                        from question_set_subscription
                         where account = ?
                     )
-                    and name like '%' || ? || '%'
+                    -- TODO: better search
+                    and question_set.name like '%' || ? || '%'
                     and (
-                        is_deleted = false  -- undeleted
-                        or is_deleted is null  -- never deleted
+                        question_set.is_deleted = false  -- undeleted
+                        or question_set.is_deleted is null  -- never deleted
                     )
                 order by
                     created_at desc

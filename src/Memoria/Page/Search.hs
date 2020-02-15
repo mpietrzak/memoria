@@ -40,4 +40,9 @@ handleSearch = do
     pure $ V.renderSearchResults footerStats vSearchResults
   where
     dbToViewSearchResult dbsr =
-        V.SearchResult {V.srName = DB.qsName dbsr, V.srQuestionSetId = DB.qsId dbsr}
+        V.SearchResult
+            { V.srName = DB.qsName dbsr
+            , V.srQuestionSetId = DB.qsId dbsr
+            , V.srOwnerNickname = DB.qsOwnerNickname dbsr
+            , V.srCreatedAt = DB.qsCreatedAt dbsr
+            }

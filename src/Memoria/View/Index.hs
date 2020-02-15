@@ -31,8 +31,10 @@ import qualified Memoria.View.Base
 
 data QuestionSet =
     QuestionSet
-        { id :: Text
-        , name :: Text
+        { qsId :: Text
+        , qsName :: Text
+        , qsOwnerNickname :: Maybe Text
+        , qsCreatedAt :: Text
         }
 
 renderIndex :: FooterStats -> [QuestionSet] -> [QuestionSet] -> Text
@@ -53,19 +55,28 @@ renderIndex footerStats questionSets subscribedQuestionSets = do
                             "["
                             H.a ! A.href "create-question-set" $ "Create one"
                             "]"
-                    _ -> H.ul $ for_ questionSets questionSetLi
+                    _ -> H.ul $ for_ questionSets (questionSetLi False)
                 H.p "Subscribed question sets:"
                 case subscribedQuestionSets of
                     [] -> H.p "You don't subscribe question sets yet..."
                     _ -> do
-                        H.ul $ for_ subscribedQuestionSets questionSetLi
+                        H.ul $ for_ subscribedQuestionSets (questionSetLi True)
     Memoria.View.Base.render footerStats content
   where
     questionSetLink _id = H.toValue $ "question-set?id=" <> _id
-    questionSetLi questionSet =
-        H.li $
-        H.a ! A.href (questionSetLink (id questionSet)) $
-        H.toHtml $
-        case Data.Text.Lazy.strip (name questionSet) of
-            "" -> "(unnamed)"
-            _ -> (name questionSet)
+    questionSetLi withOwner questionSet =
+        H.li $ do
+            H.a ! A.href (questionSetLink (qsId questionSet)) $
+                H.toHtml $ do
+                    case Data.Text.Lazy.strip (qsName questionSet) of
+                        "" -> "(unnamed)"
+                        _ -> H.toHtml (qsName questionSet)
+            case withOwner of
+                False -> ""
+                True -> do
+                    ", created by "
+                    case qsOwnerNickname questionSet of
+                        Nothing -> "anonymous"
+                        Just nickname -> H.toHtml nickname
+            ", created at "
+            H.toHtml $ Data.Text.Lazy.take 19 $ qsCreatedAt questionSet

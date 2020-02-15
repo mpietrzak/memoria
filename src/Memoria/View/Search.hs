@@ -20,7 +20,8 @@ module Memoria.View.Search
 
 import Data.Foldable (for_)
 import Data.Text.Lazy (Text)
-import Text.Blaze.XHtml1.Strict ((!), (!?))
+import qualified Data.Text.Lazy
+import Text.Blaze.XHtml1.Strict ((!))
 import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
@@ -30,6 +31,8 @@ data SearchResult =
     SearchResult
         { srName :: Text
         , srQuestionSetId :: Text
+        , srOwnerNickname :: Maybe Text
+        , srCreatedAt :: Text
         }
 
 renderSearchResults :: Memoria.View.Base.FooterStats -> [SearchResult] -> Text
@@ -43,7 +46,15 @@ renderSearchResults footerStats searchResults = do
   where
     renderSearchResult searchResult =
         H.div $ do
-            H.toHtml (srName searchResult)
+            H.span $ do
+                H.toHtml (srName searchResult)
+                ", created by "
+                case srOwnerNickname searchResult of
+                    Nothing -> "anonymous user"
+                    Just nick -> H.toHtml nick
+                " at "
+                H.toHtml $ Data.Text.Lazy.take 19 $ srCreatedAt searchResult
+            " "
             "["
             H.a ! A.href (H.toValue (subscribeSearchResultHref searchResult)) $ "subscribe"
             "]"

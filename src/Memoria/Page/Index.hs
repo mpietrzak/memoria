@@ -43,4 +43,10 @@ handleIndex = do
             let viewSubscribedQuestionSets = map qsDbToView dbSubscribedQuestionSets
             pure $ renderIndex footerStats viewQuestionSets viewSubscribedQuestionSets
   where
-    qsDbToView qs = V.QuestionSet {V.id = DB.qsId qs, V.name = DB.qsName qs}
+    qsDbToView qs =
+        V.QuestionSet
+            { V.qsId = DB.qsId qs
+            , V.qsName = DB.qsName qs
+            , V.qsOwnerNickname = DB.qsOwnerNickname qs
+            , V.qsCreatedAt = DB.qsCreatedAt qs
+            }
