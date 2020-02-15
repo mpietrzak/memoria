@@ -57,6 +57,7 @@ library
                  , Memoria.Page.CreateQuestionSet
                  , Memoria.Page.DeleteQuestionSet
                  , Memoria.Page.EditAnswer
+                 , Memoria.Page.EditQuestionSet
                  , Memoria.Page.Export
                  , Memoria.Page.Index
                  , Memoria.Page.Login
@@ -77,6 +78,7 @@ library
                  , Memoria.View.CreateQuestionSet
                  , Memoria.View.DeleteQuestionSet
                  , Memoria.View.EditAnswer
+                 , Memoria.View.EditQuestionSet
                  , Memoria.View.Export
                  , Memoria.View.Index
                  , Memoria.View.Login

@@ -85,6 +85,10 @@ renderQuestionSet footerStats accId questionSet questions = do
                             "["
                             H.a ! A.href deleteQuestionSetHref $ "Delete question set"
                             "]"
+                            " "
+                            "["
+                            H.a ! A.href editQuestionSetHref $ "Edit question set"
+                            "]"
                     False -> ""
                 H.table $ do
                     H.thead $
@@ -111,3 +115,4 @@ renderQuestionSet footerStats accId questionSet questions = do
   where
     addQuestionHref = H.toValue $ "create-question?question-set=" <> qsId questionSet
     deleteQuestionSetHref = H.toValue $ "delete-question-set?question-set=" <> qsId questionSet
+    editQuestionSetHref = H.toValue $ "edit-question-set?question-set=" <> qsId questionSet

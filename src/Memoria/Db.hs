@@ -49,6 +49,7 @@ module Memoria.Db
     , getQuestionSetsForAccount
     , getRandomQuestion
     , getSubscribedQuestionSetsForAccount
+    , modifyQuestionSet
     , searchQuestionSets
     , sessionExists
     , setNickname
@@ -817,6 +818,7 @@ getQuestionSetByOwnerAndId owner id =
                 question_set.owner,
                 account.nickname
             from question_set
+                join account on (account.id = question_set.owner)
             where
                 question_set.owner = ?
                 and question_set.id = ?
@@ -1152,6 +1154,24 @@ newId :: (MonadIO m) => m Text
 newId =
     liftIO $
     Data.UUID.V4.nextRandom >>= \uuid -> pure $ Data.Text.Lazy.fromStrict $ Data.UUID.toText uuid
+
+modifyQuestionSet :: (HasDbConn m, MonadIO m) => Text -> Text -> Text -> m ()
+modifyQuestionSet accId questionSetId name = do
+    withConnection $ \conn -> do
+        let params = [HDBC.toSql name, HDBC.toSql questionSetId, HDBC.toSql accId]
+        liftIO $ HDBC.run conn sql params
+        liftIO $ HDBC.commit conn
+  where
+    sql =
+        [r|
+                update question_set
+                set
+                    name = ?,
+                    modified_at = current_timestamp
+                where
+                    id = ?
+                    and id in (select id from question_set where owner = ?)
+            |]
 
 searchQuestionSets :: (HasDbConn m, MonadIO m) => Text -> Text -> m [QuestionSet]
 searchQuestionSets accId query = do
