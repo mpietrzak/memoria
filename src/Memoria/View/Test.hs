@@ -20,6 +20,7 @@ module Memoria.View.Test
     ) where
 
 import Data.Text.Lazy (Text)
+import Formatting (fixed, format)
 import qualified Text.Blaze
 import Text.Blaze.XHtml1.Strict ((!))
 import qualified Text.Blaze.XHtml1.Strict as H
@@ -33,6 +34,7 @@ data Question =
         { qId :: Text
         , qQuestion :: Text
         , qAnswer :: Text
+        , qScore :: Double
         , qCreatedAt :: Text
         , qModifiedAt :: Text
         }
@@ -43,6 +45,11 @@ renderTest footerStats question = do
             H.div $ do
                 H.div $ "Question: "
                 H.div $ H.toHtml (qQuestion question)
+                H.div $
+                    H.small $ do
+                        "Current score: "
+                        H.toHtml $ format (fixed 2) (qScore question)
+                H.br
                 H.form ! A.action "answer" ! A.method "post" $ do
                     H.table ! A.class_ "form" $
                         H.tbody $ do

@@ -930,6 +930,7 @@ getRandomQuestion accId = do
                       { qId = HDBC.fromSql id
                       , qQuestion = HDBC.fromSql question
                       , qAnswer = HDBC.fromSql answer
+                      , qScore = HDBC.fromSql score
                       , qCreatedAt = HDBC.fromSql createdAt
                       , qModifiedAt = HDBC.fromSql modifiedAt
                       }
