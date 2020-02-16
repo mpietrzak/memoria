@@ -41,24 +41,22 @@ renderTest :: FooterStats -> Question -> Text
 renderTest footerStats question = do
     let content =
             H.div $ do
-                H.div $ do
-                    H.p $ do
-                        "Question: "
-                        H.toHtml (qQuestion question)
-                    H.form ! A.action "answer" ! A.method "post" $ do
-                        H.table ! A.class_ "form" $
-                            H.tbody $ do
-                                H.tr $
-                                    H.td $
-                                    H.textarea ! A.name "answer" ! A.class_ "answer" ! A.cols "60" !
-                                    A.rows "5" !
-                                    Text.Blaze.customAttribute "autocomplete" "off" $
-                                    ""
-                                H.tr $
-                                    H.td ! A.align "right" $ do
-                                        H.input ! A.name "question" ! A.type_ "hidden" !
-                                            A.value (H.toValue (qId question))
-                                        H.button ! A.type_ "submit" $ "Ok"
+                H.div $ "Question: "
+                H.div $ H.toHtml (qQuestion question)
+                H.form ! A.action "answer" ! A.method "post" $ do
+                    H.table ! A.class_ "form" $
+                        H.tbody $ do
+                            H.tr $
+                                H.td $
+                                H.textarea ! A.name "answer" ! A.class_ "answer" ! A.cols "60" !
+                                A.rows "5" !
+                                Text.Blaze.customAttribute "autocomplete" "off" $
+                                ""
+                            H.tr $
+                                H.td ! A.align "right" $ do
+                                    H.input ! A.name "question" ! A.type_ "hidden" !
+                                        A.value (H.toValue (qId question))
+                                    H.button ! A.style "width: 100%" ! A.type_ "submit" $ "Ok"
     Memoria.View.Base.render footerStats content
 
 renderTestAnswer :: FooterStats -> (Text, Text) -> Question -> Bool -> Text
@@ -68,23 +66,31 @@ renderTestAnswer footerStats (answerId, answer) question isCorrect = do
                 H.div $ do
                     if isCorrect
                         then H.div $ do
-                                 H.p "This is a correct answer, congrats!"
-                                 H.p $ do
+                                 H.div ! A.style "color: green" $
+                                     "This is a correct answer, congrats!"
+                                 H.div $ do
                                      "Question: "
                                      H.toHtml (qQuestion question)
-                                 H.p $ do
+                                 H.div $ do
                                      "Answer: "
                                      H.toHtml (qAnswer question)
                         else H.div $ do
-                                 H.p "This is not a correct answer, sorry..."
+                                 H.div ! A.style "color: red" $
+                                     "This is not a correct answer, sorry..."
+                                 H.div "The question was:"
+                                 H.div $ H.toHtml $ qQuestion question
+                                 H.div "The correct answer is:"
+                                 H.div $ H.toHtml $ qAnswer question
+                                 H.div "Your answer was:"
+                                 H.div $ H.toHtml $ answer
                                  H.div $ do
-                                     H.p $ do
+                                     H.div $ do
                                          "Incorrect grade?"
                                          " "
                                          "["
                                          H.a ! A.href (H.toValue editAnswerHref) $ "Edit answer"
                                          "]"
-                                     H.p $ do
+                                     H.div $ do
                                          "Incorrect questtion?"
                                          " "
                                          "["

@@ -20,6 +20,7 @@ module Memoria.Page.Test
     ) where
 
 import Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy
 
 import qualified Memoria.Common
 import qualified Memoria.Db as DB
@@ -68,9 +69,9 @@ handleTestAnswer = do
     answer <-
         Memoria.Common.getParam "answer" >>= \case
             Nothing -> error "Answer is required"
-            Just _a -> pure _a
+            Just _a -> pure $ Data.Text.Lazy.strip _a
     question <- DB.getQuestionById questionId
-    let isAnswerCorrect = DB.qAnswer question == answer
+    let isAnswerCorrect = Data.Text.Lazy.strip (DB.qAnswer question) == answer
     questionAnswerId <- DB.addQuestionAnswer accId questionId answer isAnswerCorrect
     let vQuestion = questionDbToView question
     pure $ V.renderTestAnswer footerStats (questionAnswerId, answer) vQuestion isAnswerCorrect
