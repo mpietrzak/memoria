@@ -93,19 +93,23 @@ renderQuestionSet footerStats accId questionSet questions = do
                 H.table $ do
                     H.thead $
                         H.tr $ do
-                            H.th "question"
-                            H.th "answer"
+                            H.th "question, answer"
                             H.th "score"
-                            H.th "created"
-                            H.th "modified"
+                            H.th "created, modified"
                     H.tbody $
                         for_ questions $ \q ->
                             H.tr $ do
-                                H.td $ H.toHtml (qQuestion q)
-                                H.td $ H.toHtml (qAnswer q)
+                                H.td $ do
+                                    "Question: "
+                                    H.toHtml (qQuestion q)
+                                    H.br
+                                    "Answer: "
+                                    H.toHtml (qAnswer q)
                                 H.td $ H.toHtml (format (fixed 2) (qScore q))
-                                H.td $ H.toHtml (Data.Text.Lazy.take 19 (qCreatedAt q))
-                                H.td $ H.toHtml (Data.Text.Lazy.take 19 (qModifiedAt q))
+                                H.td $ do
+                                    H.toHtml (Data.Text.Lazy.take 19 (qCreatedAt q))
+                                    ", "
+                                    H.toHtml (Data.Text.Lazy.take 19 (qModifiedAt q))
                                 H.td $ do
                                     "["
                                     H.a ! A.href (H.toValue ("question-answers?question=" <> qId q)) $
