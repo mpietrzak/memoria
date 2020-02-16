@@ -21,6 +21,7 @@ module Memoria.View.Base
     ) where
 
 import Data.Text.Lazy (Text)
+import Formatting (format, int)
 import Text.Blaze.Renderer.Text (renderMarkup)
 import Text.Blaze.XHtml1.Strict ((!))
 import qualified Text.Blaze.XHtml1.Strict as H
@@ -102,8 +103,51 @@ footer stats =
                 H.br
             Nothing -> ""
         "Uptime: "
-        H.toHtml (fUptimeSeconds stats)
-        "s."
+        H.toHtml (humanDuration (fUptimeSeconds stats))
+
+-- TODO: generalize and replace last comma with "and"
+humanDuration :: Integer -> Text
+humanDuration sec = weeksText <> daysText <> hoursText <> minutesText <> secondsText
+  where
+    minuteInSeconds = 60
+    hourInSeconds = 60 * minuteInSeconds
+    dayInSeconds = hourInSeconds * 24
+    weekInSeconds = dayInSeconds * 7
+    weeksText =
+        case sec >= weekInSeconds of
+            True ->
+                case sec `div` weekInSeconds of
+                    1 -> "a week, "
+                    weeks -> format int weeks <> " weeks, "
+            False -> ""
+    daysText =
+        case sec >= dayInSeconds of
+            False -> ""
+            True ->
+                case sec `mod` weekInSeconds `div` dayInSeconds of
+                    1 -> "a day, "
+                    0 -> ""
+                    days -> format int days <> " days, "
+    hoursText =
+        case sec >= hourInSeconds of
+            False -> ""
+            True ->
+                case sec `mod` dayInSeconds `div` hourInSeconds of
+                    1 -> "an hour, "
+                    0 -> ""
+                    hours -> format int hours <> " hours, "
+    minutesText =
+        case sec >= minuteInSeconds of
+            False -> ""
+            True ->
+                case sec `mod` hourInSeconds `div` minuteInSeconds of
+                    1 -> "a minute, "
+                    0 -> ""
+                    minutes -> format int minutes <> " minutes, "
+    secondsText =
+        case sec `mod` minuteInSeconds of
+            1 -> "a second"
+            seconds -> format int seconds <> " seconds"
 
 menu :: H.Html
 menu =
