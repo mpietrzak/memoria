@@ -108,7 +108,6 @@ data QuestionSet =
     QuestionSet
         { qsId :: Text
         , qsName :: Text
-        , qsOwner :: Text
         , qsOwnerNickname :: Maybe Text
         , qsCreatedAt :: Text
         , qsModifiedAt :: Text
@@ -232,7 +231,7 @@ class HasDbConn m =>
                     QuestionSet
                         { qsId = HDBC.fromSql id
                         , qsName = HDBC.fromSql name
-                        , qsOwner = HDBC.fromSql owner
+                        , qsOwnerId = HDBC.fromSql owner
                         , qsOwnerNickname = HDBC.fromSql ownerNickname
                         , qsCreatedAt = HDBC.fromSql createdAt
                         , qsModifiedAt = HDBC.fromSql modifiedAt
@@ -753,15 +752,14 @@ getQuestionSetById id =
   where
     rowToQuestionSet row =
         case row of
-            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt, sqlIsDeleted, sqlOwnerId, sqlOwnerNickname] ->
+            [sqlId, sqlName, sqlOwnerId, sqlCreatedAt, sqlModifiedAt, sqlIsDeleted, sqlOwnerNickname] ->
                 QuestionSet
                     { qsId = HDBC.fromSql sqlId
                     , qsName = HDBC.fromSql sqlName
-                    , qsOwner = HDBC.fromSql sqlOwner
+                    , qsOwnerId = HDBC.fromSql sqlOwnerId
                     , qsCreatedAt = HDBC.fromSql sqlCreatedAt
                     , qsModifiedAt = HDBC.fromSql sqlModifiedAt
                     , qsIsDeleted = HDBC.fromSql sqlIsDeleted
-                    , qsOwnerId = HDBC.fromSql sqlOwnerId -- e????
                     , qsOwnerNickname = HDBC.fromSql sqlOwnerNickname
                     }
             _ -> error "Invalid number of columns"
@@ -774,7 +772,6 @@ getQuestionSetById id =
                 question_set.created_at,
                 question_set.modified_at,
                 question_set.is_deleted,
-                question_set.owner,
                 account.nickname
             from
                 question_set
@@ -794,15 +791,14 @@ getQuestionSetByOwnerAndId owner id =
   where
     rowToQuestionSet row =
         case row of
-            [sqlId, sqlName, sqlOwner, sqlCreatedAt, sqlModifiedAt, sqlIsDeleted, sqlOwnerId, sqlOwnerNickname] ->
+            [sqlId, sqlName, sqlOwnerId, sqlCreatedAt, sqlModifiedAt, sqlIsDeleted, sqlOwnerNickname] ->
                 QuestionSet
                     { qsId = HDBC.fromSql sqlId
                     , qsName = HDBC.fromSql sqlName
-                    , qsOwner = HDBC.fromSql sqlOwner
+                    , qsOwnerId = HDBC.fromSql sqlOwnerId
                     , qsCreatedAt = HDBC.fromSql sqlCreatedAt
                     , qsModifiedAt = HDBC.fromSql sqlModifiedAt
                     , qsIsDeleted = HDBC.fromSql sqlIsDeleted
-                    , qsOwnerId = HDBC.fromSql sqlOwnerId
                     , qsOwnerNickname = HDBC.fromSql sqlOwnerNickname
                     }
             _ -> error "Invalid number of columns"
@@ -815,7 +811,6 @@ getQuestionSetByOwnerAndId owner id =
                 question_set.created_at,
                 question_set.modified_at,
                 question_set.is_deleted,
-                question_set.owner,
                 account.nickname
             from question_set
                 join account on (account.id = question_set.owner)
@@ -1080,11 +1075,11 @@ getSubscribedQuestionSetsForAccount accId = do
   where
     rowToQuestionSet =
         \case
-            [id, name, owner, createdAt, modifiedAt, ownerNickname] ->
+            [id, name, ownerId, createdAt, modifiedAt, ownerNickname] ->
                 QuestionSet
                     { qsId = HDBC.fromSql id
                     , qsName = HDBC.fromSql name
-                    , qsOwner = HDBC.fromSql owner
+                    , qsOwnerId = HDBC.fromSql ownerId
                     , qsCreatedAt = HDBC.fromSql createdAt
                     , qsModifiedAt = HDBC.fromSql modifiedAt
                     , qsOwnerNickname = HDBC.fromSql ownerNickname
@@ -1229,11 +1224,11 @@ searchQuestionSets accId query = do
   where
     rowToSearchResult =
         \case
-            [id, name, owner, createdAt, modifiedAt, ownerNickname] ->
+            [id, name, ownerId, createdAt, modifiedAt, ownerNickname] ->
                 QuestionSet
                     { qsId = HDBC.fromSql id
                     , qsName = HDBC.fromSql name
-                    , qsOwner = HDBC.fromSql owner
+                    , qsOwnerId = HDBC.fromSql ownerId
                     , qsCreatedAt = HDBC.fromSql createdAt
                     , qsModifiedAt = HDBC.fromSql modifiedAt
                     , qsOwnerNickname = HDBC.fromSql ownerNickname

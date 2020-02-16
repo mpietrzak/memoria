@@ -19,7 +19,7 @@ module Memoria.View.QuestionSetSubscribe
     ) where
 
 import Data.Text.Lazy (Text)
-import Text.Blaze.XHtml1.Strict ((!), (!?))
+import Text.Blaze.XHtml1.Strict ((!))
 import qualified Text.Blaze.XHtml1.Strict as H
 import qualified Text.Blaze.XHtml1.Strict.Attributes as A
 
@@ -29,7 +29,7 @@ data QuestionSet =
     QuestionSet
         { qsId :: Text
         , qsName :: Text
-        , qsOwner :: Text
+        , qsOwnerId :: Text
         , qsCreatedAt :: Text
         , qsModifiedAt :: Text
         }

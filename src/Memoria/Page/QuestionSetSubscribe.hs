@@ -39,7 +39,7 @@ handleQuestionSetSubscribe = do
         V.QuestionSet
             { V.qsId = DB.qsId dbqs
             , V.qsName = DB.qsName dbqs
-            , V.qsOwner = DB.qsOwner dbqs
+            , V.qsOwnerId = DB.qsOwnerId dbqs
             , V.qsCreatedAt = DB.qsCreatedAt dbqs
             , V.qsModifiedAt = DB.qsModifiedAt dbqs
             }
