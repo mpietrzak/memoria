@@ -37,7 +37,7 @@ handleSearch = do
             Nothing -> error "No account id"
     dbSearchResults <- DB.searchQuestionSets accId query
     let vSearchResults = map dbToViewSearchResult dbSearchResults
-    pure $ V.renderSearchResults footerStats vSearchResults
+    pure $ V.renderSearchResults footerStats query vSearchResults
   where
     dbToViewSearchResult dbsr =
         V.SearchResult

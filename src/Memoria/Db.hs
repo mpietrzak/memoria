@@ -256,7 +256,7 @@ class HasDbConn m =>
             |]
         withConnection $ \conn ->
             liftIO $ do
-                HDBC.run conn updateAccessTimestampSql [HDBC.toSql sessionKet]
+                HDBC.run conn updateAccessTimestampSql [HDBC.toSql sessionKey]
                 HDBC.commit conn
         withConnection $ \conn -> do
             rows <- liftIO $ HDBC.quickQuery conn selectSql [HDBC.toSql sessionKey, HDBC.toSql name]

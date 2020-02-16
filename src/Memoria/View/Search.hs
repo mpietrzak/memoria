@@ -35,10 +35,13 @@ data SearchResult =
         , srCreatedAt :: Text
         }
 
-renderSearchResults :: Memoria.View.Base.FooterStats -> [SearchResult] -> Text
-renderSearchResults footerStats searchResults = do
-    let content =
-            H.div $
+renderSearchResults :: Memoria.View.Base.FooterStats -> Text -> [SearchResult] -> Text
+renderSearchResults footerStats query searchResults = do
+    let content = do
+            H.div ! A.style "padding-bottom: 16px; padding-top: 16px" $
+                H.form ! A.method "get" ! A.action "question-set-search" $ do
+                    H.input ! A.type_ "text" ! A.name "q" ! A.value (H.toValue query)
+                    H.button ! A.type_ "submit" $ "Search"
             case searchResults of
                 [] -> H.p "Nothing found :<"
                 _ -> for_ searchResults renderSearchResult
