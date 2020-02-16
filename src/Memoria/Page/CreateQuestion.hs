@@ -93,7 +93,7 @@ handleCreateQuestion = do
                 accId
                 questionSetId
                 (Data.Maybe.fromJust $ V.question formData, Data.Maybe.fromJust $ V.answer formData)
-            Memoria.Common.redirect "/"
+            Memoria.Common.redirect $ "question-set?id=" <> questionSetId
             pure ""
   where
     processFormData = processFormDataGo True def
