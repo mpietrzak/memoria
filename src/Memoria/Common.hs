@@ -28,8 +28,10 @@ module Memoria.Common
     , hasAccount
     ) where
 
+import Control.Monad.IO.Class (liftIO)
 import Data.Default.Class (Default, def)
 import Data.Text.Lazy (Text)
+import Data.Time.Clock (UTCTime, getCurrentTime)
 import Formatting ((%), fixed, format, text)
 import qualified Network.HTTP.Types.Method
 
@@ -40,10 +42,8 @@ data SysStats =
     SysStats
         { sDatabaseSize :: Maybe Integer
         , sResidentSetSize :: Maybe Integer
+        , sStartTimestamp :: UTCTime
         }
-
-instance Default SysStats where
-    def = SysStats {sDatabaseSize = Nothing, sResidentSetSize = Nothing}
 
 class HasCsrfToken m where
     checkCsrfToken :: Text -> m ()
@@ -53,13 +53,6 @@ class HasSysStats m =>
       HasFooterStats m
     where
     getFooterStats :: m FooterStats
-    getFooterStats = do
-        sysStats <- getSysStats
-        pure $
-            FooterStats
-                { fDatabaseSize = sDatabaseSize sysStats
-                , fResidentSetSize = sResidentSetSize sysStats
-                }
 
 class HasParams m where
     getParam :: Text -> m (Maybe Text)

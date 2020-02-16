@@ -40,6 +40,7 @@ import Data.Pool (Pool, withResource)
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy
 import qualified Data.Text.Lazy.Encoding
+import qualified Data.Time.Clock
 import qualified Data.UUID
 import qualified Data.UUID.V4
 import qualified Database.HDBC.PostgreSQL as PSQL
@@ -55,6 +56,7 @@ import Memoria.Common
     , HasRequestMethod
     , SysStats(..)
     , getRequestMethod
+    , getSysStats
     )
 import qualified Memoria.Common as Memoria.Common
 import qualified Memoria.Conf as Memoria.Conf
@@ -93,6 +95,7 @@ import Memoria.Sessions
     , setSessionValue
     )
 import qualified Memoria.Timers
+import Memoria.View.Base (FooterStats(..))
 
 data State =
     State
@@ -170,7 +173,17 @@ instance Memoria.Common.HasCsrfToken (ST.ActionT Text StateM) where
         sessionKey <- ensureSession
         Memoria.Db.ensureCsrfToken sessionKey
 
-instance Memoria.Common.HasFooterStats (ST.ActionT Text StateM)
+instance Memoria.Common.HasFooterStats (ST.ActionT Text StateM) where
+    getFooterStats = do
+        sysStats <- getSysStats
+        now <- liftIO $ Data.Time.Clock.getCurrentTime
+        let td = Data.Time.Clock.diffUTCTime now (sStartTimestamp sysStats)
+        pure $
+            FooterStats
+                { fDatabaseSize = sDatabaseSize sysStats
+                , fResidentSetSize = sResidentSetSize sysStats
+                , fUptimeSeconds = round td
+                }
 
 instance HasParams (ST.ActionT Text StateM) where
     getParam name = do
@@ -311,7 +324,10 @@ loadConf = Memoria.Conf.load
 
 main :: Memoria.Conf.Conf -> IO ()
 main conf = do
-    sysStatsRef <- newIORef def
+    now <- Data.Time.Clock.getCurrentTime
+    sysStatsRef <-
+        newIORef $
+        SysStats {sResidentSetSize = Nothing, sDatabaseSize = Nothing, sStartTimestamp = now}
     pool <-
         Memoria.Db.createDbPool
             (Memoria.Conf.cfgDbHost conf)

@@ -33,6 +33,7 @@ data FooterStats =
     FooterStats
         { fDatabaseSize :: Maybe Integer
         , fResidentSetSize :: Maybe Integer
+        , fUptimeSeconds :: Integer
         }
 
 css :: Text
@@ -100,6 +101,9 @@ footer stats =
                 H.toHtml $ humanByteSize rss
                 H.br
             Nothing -> ""
+        "Uptime: "
+        H.toHtml (fUptimeSeconds stats)
+        "s."
 
 menu :: H.Html
 menu =
