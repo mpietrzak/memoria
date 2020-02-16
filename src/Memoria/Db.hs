@@ -238,18 +238,28 @@ class HasDbConn m =>
                         }
                 _ -> error "Invalid type"
     getSessionValue sessionKey name = do
-        let sql =
+        let updateAccessTimestampSql =
                 [r|
-                select value
-                from
-                    session
-                    join session_value on (session_value.session = session.id)
-                where
-                    session.key = ?
-                    and session_value.name = ?
+                    update session
+                    set accessed_at = current_timestamp
+                    where key = ?
             |]
+        let selectSql =
+                [r|
+                    select value
+                    from
+                        session
+                        join session_value on (session_value.session = session.id)
+                    where
+                        session.key = ?
+                        and session_value.name = ?
+            |]
+        withConnection $ \conn ->
+            liftIO $ do
+                HDBC.run conn updateAccessTimestampSql [HDBC.toSql sessionKet]
+                HDBC.commit conn
         withConnection $ \conn -> do
-            rows <- liftIO $ HDBC.quickQuery conn sql [HDBC.toSql sessionKey, HDBC.toSql name]
+            rows <- liftIO $ HDBC.quickQuery conn selectSql [HDBC.toSql sessionKey, HDBC.toSql name]
             case rows of
                 [row] ->
                     case row of
