@@ -57,7 +57,10 @@ renderTest footerStats question = do
                                 H.td $
                                 H.textarea ! A.name "answer" ! A.class_ "answer" ! A.cols "60" !
                                 A.rows "5" !
-                                Text.Blaze.customAttribute "autocomplete" "off" $
+                                Text.Blaze.customAttribute "autocapitalize" "off" !
+                                Text.Blaze.customAttribute "autocomplete" "off" !
+                                Text.Blaze.customAttribute "autocorrect" "off" !
+                                Text.Blaze.customAttribute "spellcheck" "false" $
                                 ""
                             H.tr $
                                 H.td ! A.align "right" $ do
