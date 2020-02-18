@@ -169,10 +169,12 @@ class HasDbConn m =>
                         id,
                         key,
                         created_at,
-                        modified_at
+                        modified_at,
+                        accessed_at
                     ) values (
                         ?,
                         ?,
+                        current_timestamp,
                         current_timestamp,
                         current_timestamp
                     )
@@ -308,7 +310,6 @@ class HasDbConn m =>
                     , HDBC.toSql value
                     ]
             liftIO $ HDBC.commit conn
-        liftIO $ fprint ("Db.setSessionValue: Session value saved in DB\n")
         pure ()
 
 addEmail :: (HasDbConn m, MonadIO m) => Text -> Text -> m ()
@@ -1290,11 +1291,8 @@ sessionExists sessionKey =
         case rows of
             [row] ->
                 case row of
-                    [HDBC.SqlString _] -> pure True
-                    [HDBC.SqlLocalTime _] -> pure True
-                    v -> do
-                        liftIO $ fprint ("sessionExists: Unexpected type: " % shown % "\n") v
-                        pure True
+                    [_] -> pure True
+                    _ -> error "Invalid number of columns"
             _ -> pure False
 
 setNickname :: (MonadIO m, HasDbConn m) => Text -> Text -> m ()
