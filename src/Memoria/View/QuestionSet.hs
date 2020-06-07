@@ -115,6 +115,9 @@ renderQuestionSet footerStats accId questionSet questions = do
                                     H.a ! A.href (H.toValue ("question-answers?question=" <> qId q)) $
                                         "Show answers"
                                     "]"
+                                    "["
+                                    H.a ! A.href (H.toValue ("edit-question?question=" <> qId q)) $ "Edit question"
+                                    "]"
     Memoria.View.Base.render footerStats content
   where
     addQuestionHref = H.toValue $ "create-question?question-set=" <> qsId questionSet

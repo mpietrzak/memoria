@@ -57,6 +57,7 @@ library
                  , Memoria.Page.CreateQuestionSet
                  , Memoria.Page.DeleteQuestionSet
                  , Memoria.Page.EditAnswer
+                 , Memoria.Page.EditQuestion
                  , Memoria.Page.EditQuestionSet
                  , Memoria.Page.Export
                  , Memoria.Page.Index

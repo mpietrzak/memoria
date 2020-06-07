@@ -68,6 +68,7 @@ import Memoria.Page.CreateQuestion (handleCreateQuestion)
 import Memoria.Page.CreateQuestionSet (handleCreateQuestionSet)
 import Memoria.Page.DeleteQuestionSet (handleDeleteQuestionSet)
 import Memoria.Page.EditAnswer (handleEditAnswer)
+import Memoria.Page.EditQuestion (handleEditQuestion)
 import Memoria.Page.EditQuestionSet (handleEditQuestionSet)
 import Memoria.Page.Export (handleExport, handleExportQuestions)
 import Memoria.Page.Index (handleIndex)
@@ -278,6 +279,7 @@ application = do
     ST.get "/delete-nickname" $ withSetCookies handleDeleteNickname >>= ST.html
     ST.get "/delete-question-set" $ withSetCookies handleDeleteQuestionSet >>= ST.html
     ST.get "/edit-answer" $ withSetCookies handleEditAnswer >>= ST.html
+    ST.get "/edit-question" $ withSetCookies handleEditQuestion >>= ST.html
     ST.get "/edit-question-set" $ withSetCookies handleEditQuestionSet >>= ST.html
     ST.get "/export" $ withSetCookies handleExport >>= ST.html
     ST.get "/login" $ withSetCookies handleLogin >>= ST.html
@@ -298,6 +300,7 @@ application = do
     ST.post "/delete-nickname" $ withSetCookies handleDeleteNickname >>= ST.html
     ST.post "/delete-question-set" $ withSetCookies handleDeleteQuestionSet >>= ST.html
     ST.post "/edit-answer" $ withSetCookies handleEditAnswer >>= ST.html
+    ST.post "/edit-question" $ withSetCookies handleEditQuestion >>= ST.html
     ST.post "/edit-question-set" $ withSetCookies handleEditQuestionSet >>= ST.html
     ST.post "/login" $ withSetCookies handleLogin >>= ST.html
     ST.post "/question-set-subscribe" $ withSetCookies handleQuestionSetSubscribe >>= ST.html
